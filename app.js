@@ -738,4 +738,100 @@
       }
     }
   });
+
+  /* ---------- Easter egg : taper « lucasbessis » → explosion pixel, puis 3 danseuses (≈ 7,5 s) ---------- */
+  const MOT = "lucasbessis";
+  let tape = "";
+  addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1 || /input|textarea|select/i.test(e.target.tagName)) return;
+    tape = (tape + e.key.toLowerCase()).slice(-MOT.length);
+    if (tape === MOT && !document.querySelector(".boom")) { tape = ""; boom(); }
+  });
+
+  function boom() {
+    const cv = el("canvas", "boom");
+    document.body.append(cv);
+    const W = 160, H = Math.max(96, Math.round((W * innerHeight) / innerWidth));
+    cv.width = W; cv.height = H;
+    const g = cv.getContext("2d");
+    const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
+    const cx = W / 2, cy = H * 0.55;
+    const FEU = ["#ffffff", "#fff3a3", "#ffd23f", "#ff9f1c", "#ff5a1f", "#d62828", "#6b6b6b"];
+    const parts = Array.from({ length: 110 }, () => {
+      const a = Math.random() * Math.PI * 2, v = 25 + Math.random() * 85;
+      return { x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, s: 1 + ((Math.random() * 3) | 0), c: FEU[(Math.random() * 6) | 0], vie: 0.6 + Math.random() * 1.1 };
+    });
+    const fumee = Array.from({ length: 16 }, (_, k) => ({ a: (k / 16) * Math.PI * 2, r: 6 + Math.random() * 6, d: 10 + Math.random() * 16 }));
+    const danseuses = [
+      { peau: "#f1c27d", cheveux: "#f4d35e", maillot: "#ff4fa3", dx: -32, ph: 0 },
+      { peau: "#8d5524", cheveux: "#2b1b14", maillot: "#2ec4b6", dx: 0, ph: 1 },
+      { peau: "#ffdbac", cheveux: "#c0392b", maillot: "#ffd23f", dx: 32, ph: 2 },
+    ];
+    const notes = Array.from({ length: 8 }, (_, k) => ({ x: 20 + Math.random() * (W - 40), t0: 2 + k * 0.6 + Math.random() * 0.4, c: ["#ff4fa3", "#2ec4b6", "#ffd23f", "#ffffff"][k % 4] }));
+    const NOTE = ["..##", "..#.", "..#.", "###.", "###."];
+    const DUREE = reduced ? 3 : 7.6;
+    let t0 = 0, fini = false;
+    const stop = () => { if (fini) return; fini = true; cv.remove(); };
+    cv.addEventListener("click", stop);
+    addEventListener("keydown", (e) => { if (e.key === "Escape") stop(); }, { once: true });
+
+    function danseuse(d, t) {
+      const f = (Math.floor(t * 4) + d.ph) % 4;              // 4 pas de danse
+      const bob = f % 2 ? -1 : 0, hx = [0, 1, 0, -1][f];
+      const x = Math.round(cx + d.dx), y = Math.round(H * 0.86) + bob;
+      // jambes (une pliée sur les pas 1 et 3)
+      px(x - 3 + hx, y - 9, 2, f === 1 ? 7 : 9, d.peau); px(x + 1 + hx, y - 9, 2, f === 3 ? 7 : 9, d.peau);
+      // maillot (bas), ventre, maillot (haut)
+      px(x - 3 + hx, y - 11, 6, 2, d.maillot);
+      px(x - 3 + Math.round(hx / 2), y - 17, 6, 6, d.peau);
+      px(x - 3 + Math.round(hx / 2), y - 16, 6, 2, d.maillot);
+      // bras selon le pas : haut / un en l'air / à l'horizontale / l'autre en l'air
+      const bras = [[[-1, -1], [1, -1]], [[-1, -1], [1, 0]], [[-1, 0], [1, 0]], [[-1, 0], [1, -1]]][f];
+      bras.forEach(([sx, sy], k) => {
+        const ex = x + (k ? 3 : -4) + Math.round(hx / 2), ey = y - 17;
+        for (let i = 0; i < 6; i++) px(ex + sx * (sy ? Math.min(i, 1) : i), ey + sy * i, 1, 1, d.peau);
+      });
+      // cou, tête, cheveux longs, yeux, sourire
+      px(x - 1, y - 18, 2, 1, d.peau);
+      px(x - 2, y - 23, 5, 5, d.peau);
+      px(x - 3, y - 25, 7, 2, d.cheveux); px(x - 3, y - 23, 1, 6, d.cheveux); px(x + 3, y - 23, 1, 6, d.cheveux);
+      px(x - 1, y - 21, 1, 1, "#1a1a1a"); px(x + 1, y - 21, 1, 1, "#1a1a1a");
+      if (f % 2) px(x - 1, y - 19, 3, 1, "#c0392b");
+    }
+
+    function image(now) {
+      if (fini) return;
+      if (!t0) t0 = now;
+      const t = (now - t0) / 1000 + (reduced ? 2.2 : 0);
+      g.clearRect(0, 0, W, H);
+      const fondu = t > DUREE - 0.8 ? Math.max(0, (DUREE - t) / 0.8) : 1;
+      g.globalAlpha = fondu;
+      // fond sombre, lumières de boîte de nuit qui tournent
+      px(0, 0, W, H, "rgba(8,6,18,.82)");
+      if (t > 1.6) for (let k = 0; k < 3; k++) {
+        const a = t * 1.3 + k * 2.1, lx = cx + Math.cos(a) * W * 0.4;
+        g.fillStyle = ["rgba(255,79,163,.18)", "rgba(46,196,182,.18)", "rgba(255,210,63,.18)"][k];
+        g.beginPath(); g.moveTo(cx + (k - 1) * 50, 0); g.lineTo(lx - 18, H); g.lineTo(lx + 18, H); g.fill();
+      }
+      if (t > 1.2) { px(0, Math.round(H * 0.86) + 1, W, 1, "#ffffff"); danseuses.forEach((d) => danseuse(d, t)); }
+      // notes de musique qui montent
+      notes.forEach((n) => { const u = t - n.t0; if (u < 0 || u > 2.5) return; const y = H * 0.75 - u * 22; NOTE.forEach((row, j) => [...row].forEach((ch, i) => ch === "#" && px(n.x + i + Math.sin(u * 4) * 3, y + j, 1, 1, n.c))); });
+      // explosion : éclair, boule de feu, onde, débris, fumée
+      if (t < 0.12) px(0, 0, W, H, "#ffffff");
+      if (t < 0.9) {
+        const r = 6 + t * 40, feu = 30 * Math.sin((Math.PI * t) / 0.9);
+        const disque = (R, c) => { for (let yy = -R; yy <= R; yy++) { const w = Math.round(Math.sqrt(Math.max(0, R * R - yy * yy))); px(cx - w, cy + yy, w * 2 + 1, 1, c); } };
+        for (let k = 0; k < 4; k++) disque(Math.round(Math.max(0, feu * (1 - k * 0.22))), FEU[k + 1]);
+        g.fillStyle = "#fff3a3"; for (let a = 0; a < 6.28; a += 0.12) px(cx + Math.cos(a) * r * 1.4, cy + Math.sin(a) * r * 1.4, 1, 1, "#fff3a3");
+      }
+      parts.forEach((p) => { if (t > p.vie) return; const k = t; px(p.x + p.vx * k, p.y + p.vy * k + 40 * k * k, p.s, p.s, t > p.vie * 0.7 ? FEU[6] : p.c); });
+      if (t > 0.4 && t < 2.4) {
+        const u = (t - 0.4) / 2, a = 1 - u;
+        fumee.forEach((s) => { g.fillStyle = `rgba(110,110,120,${a * 0.8})`; const R = s.r + u * 8, X = cx + Math.cos(s.a) * (s.d + u * 18), Y = cy + Math.sin(s.a) * (s.d + u * 10) - u * 10; for (let yy = -R; yy <= R; yy += 2) { const w = Math.round(Math.sqrt(R * R - yy * yy)); px(X - w, Y + yy, w * 2, 2, g.fillStyle); } });
+      }
+      g.globalAlpha = 1;
+      if (t < DUREE) requestAnimationFrame(image); else stop();
+    }
+    requestAnimationFrame(image);
+  }
 })();

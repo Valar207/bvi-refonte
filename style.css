@@ -396,6 +396,9 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
 .screensaver.on { opacity: 1; pointer-events: auto; cursor: none; }
 .screensaver img { position: absolute; width: 120px; height: 120px; left: 0; top: 0; will-change: transform; transition: filter 0.3s; }
 
+/* Easter egg « lucasbessis » : petit canvas agrandi sans lissage = vrai pixel art */
+.boom { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 96000; image-rendering: pixelated; image-rendering: crisp-edges; cursor: pointer; }
+
 /* Konami rain */
 .rain { position: fixed; top: -80px; width: 60px; height: 60px; z-index: 95000; pointer-events: none; }
 
