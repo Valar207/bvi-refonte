@@ -739,7 +739,7 @@
     }
   });
 
-  /* ---------- Easter egg : taper « lucasbessis » → explosion pixel, puis 3 danseuses (≈ 20 s) ---------- */
+  /* ---------- Easter egg : taper « lucasbessis » → explosion pixel, puis 3 danseuses (≈ 1 min) ---------- */
   const MOT = "lucasbessis";
   let tape = "";
   addEventListener("keydown", (e) => {
@@ -767,12 +767,12 @@
       { peau: "#8d5524", cheveux: "#2b1b14", maillot: "#2ec4b6", dx: 0, ph: 1 },
       { peau: "#ffdbac", cheveux: "#c0392b", maillot: "#ffd23f", dx: 32, ph: 2 },
     ];
-    const notes = Array.from({ length: 30 }, (_, k) => ({ x: 20 + Math.random() * (W - 40), t0: 2 + k * 0.58 + Math.random() * 0.4, c: ["#ff4fa3", "#2ec4b6", "#ffd23f", "#ffffff"][k % 4] }));
+    const notes = Array.from({ length: 100 }, (_, k) => ({ x: 20 + Math.random() * (W - 40), t0: 2 + k * 0.58 + Math.random() * 0.4, c: ["#ff4fa3", "#2ec4b6", "#ffd23f", "#ffffff"][k % 4] }));
     const NOTE = ["..##", "..#.", "..#.", "###.", "###."];
-    const DUREE = reduced ? 3 : 20;
+    const DUREE = reduced ? 3 : 60;
     // la musique : le clip officiel, intégré depuis YouTube (lecture lancée par la frappe au clavier), dans une petite fenêtre du site
     const rick = el("div", "rick");
-    const barre = el("div", "rick-barre"); barre.textContent = "never_gonna.exe";
+    const barre = el("div", "rick-barre"); barre.textContent = "never_gonna.exe · Échap pour fermer";
     const yt = el("iframe");
     yt.src = "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&controls=0&playsinline=1&rel=0&modestbranding=1";
     yt.allow = "autoplay; encrypted-media";
