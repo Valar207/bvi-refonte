@@ -144,7 +144,7 @@
         el("h1", { text: "b-vi · admin" }),
         instance !== "prod" ? el("span", { class: "qui", text: "version de test (" + instance + ")" }) : null,
         el("span", { class: "qui", text: user }),
-        el("a", { class: "b sm", href: "../?v=" + Date.now(), target: "_blank", rel: "noopener" }, "Voir le site ↗"),
+        el("a", { class: "b sm", href: "/?v=" + Date.now(), target: "_blank", rel: "noopener" }, "Voir le site ↗"),
         el("button", { class: "b sm", type: "button", onclick: versions }, "Versions"),
         el("button", { class: "b sm", type: "button", onclick: deconnexion }, "Déconnexion")),
       el("div", { class: "cadre" }, arbre(), main),
