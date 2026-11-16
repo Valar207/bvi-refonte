@@ -770,8 +770,17 @@
     const notes = Array.from({ length: 8 }, (_, k) => ({ x: 20 + Math.random() * (W - 40), t0: 2 + k * 0.6 + Math.random() * 0.4, c: ["#ff4fa3", "#2ec4b6", "#ffd23f", "#ffffff"][k % 4] }));
     const NOTE = ["..##", "..#.", "..#.", "###.", "###."];
     const DUREE = reduced ? 3 : 7.6;
+    // la musique : le clip officiel, intégré depuis YouTube (lecture lancée par la frappe au clavier), dans une petite fenêtre du site
+    const rick = el("div", "rick");
+    const barre = el("div", "rick-barre"); barre.textContent = "never_gonna.exe";
+    const yt = el("iframe");
+    yt.src = "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&controls=0&playsinline=1&rel=0&modestbranding=1";
+    yt.allow = "autoplay; encrypted-media";
+    yt.title = "Rick Astley — Never Gonna Give You Up";
+    rick.append(barre, yt);
+    document.body.append(rick);
     let t0 = 0, fini = false;
-    const stop = () => { if (fini) return; fini = true; cv.remove(); };
+    const stop = () => { if (fini) return; fini = true; cv.remove(); rick.classList.add("out"); setTimeout(() => rick.remove(), 400); };
     cv.addEventListener("click", stop);
     addEventListener("keydown", (e) => { if (e.key === "Escape") stop(); }, { once: true });
 

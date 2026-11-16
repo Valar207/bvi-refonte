@@ -399,6 +399,13 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
 /* Easter egg « lucasbessis » : petit canvas agrandi sans lissage = vrai pixel art */
 .boom { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 96000; image-rendering: pixelated; image-rendering: crisp-edges; cursor: pointer; }
 
+.rick { position: fixed; right: 20px; bottom: 70px; z-index: 96001; width: min(320px, 70vw); background: var(--win-bg); border: 2px solid white; box-shadow: 6px 6px 0 rgba(0,0,0,.5); animation: rickIn .35s steps(4) both; }
+.rick.out { animation: rickOut .35s steps(4) both; }
+.rick-barre { background: white; color: black; padding: 4px 8px; font-size: 14px; }
+.rick iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
+@keyframes rickIn { from { transform: translateY(30px) scale(.6); opacity: 0; } }
+@keyframes rickOut { to { transform: translateY(30px) scale(.6); opacity: 0; } }
+
 /* Konami rain */
 .rain { position: fixed; top: -80px; width: 60px; height: 60px; z-index: 95000; pointer-events: none; }
 
