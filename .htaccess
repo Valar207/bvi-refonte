@@ -1,0 +1,6 @@
+# content.js est réécrit par l'administration à chaque publication : toujours le recharger
+<IfModule mod_headers.c>
+  <FilesMatch "^content\.js$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
