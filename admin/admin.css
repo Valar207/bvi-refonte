@@ -72,6 +72,9 @@ section.bloc > h2 { margin: 0 0 10px; font-size: 16px; display: flex; align-item
 section.bloc > h2 .aide { font-family: system-ui, sans-serif; font-size: 13px; color: var(--muted); letter-spacing: 0; }
 .langues { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 900px) { .langues { grid-template-columns: minmax(0, 1fr); } }
+/* dans les cartes des photos (étroites), une langue par ligne */
+.carte .langues { grid-template-columns: minmax(0, 1fr); }
+.carte .langues textarea { min-height: 64px; }
 
 /* Lien dans un texte */
 .champ-lien { display: flex; flex-direction: column; gap: 6px; }
