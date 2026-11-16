@@ -1,21 +1,88 @@
-/* B-VI — bureau, fenêtres, visionneuse et animations. Aucune dépendance. */
+/* B-VI — bureau, fenêtres, visionneuse, langues et animations. Aucune dépendance. */
 (() => {
   "use strict";
 
   const $ = (s, r = document) => r.querySelector(s);
-  const el = (tag, cls, html) => {
+  const el = (tag, cls) => {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
-    if (html != null) e.innerHTML = html;
     return e;
   };
-  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const rand = (a, b) => a + Math.random() * (b - a);
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isMobile = () => innerWidth <= 768;
   const footerH = () => $("#footer").offsetHeight || 52;
   const A = "assets/";
+
+  /* ---------- Langue ---------- */
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
+  };
+  const codes = LANGS.map((l) => l.code);
+  let lang = store.get("bvi-lang");
+  if (!codes.includes(lang)) {
+    const nav = (navigator.language || "fr").slice(0, 2).toLowerCase();
+    lang = codes.includes(nav) ? nav : "fr";
+  }
+  const tr = (x) => (x == null ? "" : typeof x === "string" ? x : x[lang] ?? x.fr ?? "");
+
+  // Texte lié à la langue : il sera mis à jour au changement de langue
+  const setT = (node, obj) => {
+    node._t = obj;
+    node.classList.add("i18n");
+    node.textContent = tr(obj);
+    return node;
+  };
+  // Attribut lié à la langue (aria-label, alt, title)
+  const setA = (node, attr, obj) => {
+    (node._a = node._a || {})[attr] = obj;
+    node.classList.add("i18n-a");
+    node.setAttribute(attr, tr(obj));
+    return node;
+  };
+
+  // Effet "brouillage" pixel au changement de langue
+  const GLYPHS = "█▓▒░#*+=/<>";
+  function scrambleTo(node, text) {
+    if (reduced || !node.isConnected || node.offsetParent === null) { node.textContent = text; return; }
+    const from = node.textContent;
+    const len = Math.max(from.length, text.length);
+    const dur = clamp(len * 18, 250, 650);
+    const start = performance.now();
+    node._scr && cancelAnimationFrame(node._scr);
+    const step = (t) => {
+      const p = clamp((t - start) / dur, 0, 1);
+      const fixed = Math.floor(p * text.length);
+      let out = text.slice(0, fixed);
+      const tail = Math.round((1 - p) * (len - fixed));
+      for (let i = 0; i < tail && fixed + i < len; i++) {
+        const c = text[fixed + i] ?? from[fixed + i] ?? " ";
+        out += c === " " ? " " : GLYPHS[(Math.random() * GLYPHS.length) | 0];
+      }
+      node.textContent = out;
+      if (p < 1) node._scr = requestAnimationFrame(step);
+      else { node.textContent = text; node._scr = 0; }
+    };
+    node._scr = requestAnimationFrame(step);
+  }
+
+  function applyLang(next, animate) {
+    lang = next;
+    store.set("bvi-lang", lang);
+    document.documentElement.lang = lang;
+    $('meta[name="description"]').setAttribute("content", tr(UI.metaDesc));
+    document.querySelectorAll(".i18n").forEach((n) => (animate ? scrambleTo(n, tr(n._t)) : (n.textContent = tr(n._t))));
+    document.querySelectorAll(".i18n-a").forEach((n) => Object.entries(n._a).forEach(([a, o]) => n.setAttribute(a, tr(o))));
+    document.querySelectorAll(".i18n-desc").forEach((n) => {
+      n.textContent = "";
+      typewrite(n, tr(n._t), 0, animate ? 1 : 0);
+    });
+    document.querySelectorAll(".window-content.contact").forEach((c) => renderContact(c, animate));
+    if (lbOpen) renderLightbox(lbNode, lbIndex);
+    document.querySelectorAll(".lang-btn").forEach((b) => b.classList.toggle("activeFF", b.dataset.lang === lang));
+  }
 
   /* ---------- Index des nœuds ---------- */
   let uid = 0;
@@ -24,7 +91,7 @@
   CONTACT.id = "w-contact";
   CONTACT.isContact = true;
 
-  /* ---------- Fond : spotlight qui suit le curseur ---------- */
+  /* ---------- Fond : halo qui suit le curseur ---------- */
   let spotRaf = 0;
   addEventListener("pointermove", (e) => {
     if (spotRaf) return;
@@ -37,15 +104,19 @@
 
   /* ---------- Bureau ---------- */
   const desktop = $("#desktop");
+  setA(desktop, "aria-label", UI.desktop);
   const makeIcon = (node, icon) => {
     const f = el("div", "folder folder-item");
     f.tabIndex = 0;
     f.setAttribute("role", "button");
-    f.innerHTML = `<img src="${A}${icon}" alt="" /><h2>${esc(node.name)}</h2>`;
+    const im = el("img");
+    im.src = A + icon;
+    im.alt = "";
+    f.append(im, setT(el("h2"), node.name));
     const open = () => {
       document.querySelectorAll(".folder.selected").forEach((x) => x.classList.remove("selected"));
       f.classList.add("selected");
-      openWindow(node, f.querySelector("img"));
+      openWindow(node, im);
     };
     f.addEventListener("click", open);
     f.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
@@ -93,6 +164,16 @@
     w.tab.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduced ? "auto" : "smooth" });
   }
 
+  function ctrlButton(cls, icon, label) {
+    const b = el("button", cls);
+    setA(b, "aria-label", label);
+    const im = el("img");
+    im.src = A + icon;
+    im.alt = "";
+    b.append(im);
+    return b;
+  }
+
   function openWindow(node, originEl) {
     const existing = wins.get(node.id);
     if (existing) {
@@ -108,20 +189,22 @@
     }
 
     const win = el("section", "windows active-w" + (node.isContact ? " contactW" : ""));
-    win.setAttribute("aria-label", node.name);
-    const icon = node.isContact ? "contact-small.png" : "dossier-ouvert-black.png";
-    win.innerHTML = `
-      <div class="window-header">
-        <div class="header-left"><img class="${node.isContact ? "contact" : ""}" src="${A}${icon}" alt="" /><p>${esc(node.name)}</p></div>
-        <div class="header-right">
-          <button class="min" aria-label="Réduire"><img src="${A}window-noir-reduire.png" alt="" /></button>
-          <button class="fs" aria-label="Plein écran"><img src="${A}window-noir-fullscreen.png" alt="" /></button>
-          <button class="close" aria-label="Fermer"><img src="${A}window-noir-close.png" alt="" /></button>
-        </div>
-      </div>
-      <div class="window-content${node.isContact ? " contact" : ""}"></div>
-      <div class="resize-handle"></div>`;
-    const content = $(".window-content", win);
+    setA(win, "aria-label", node.name);
+
+    const header = el("div", "window-header");
+    const hl = el("div", "header-left");
+    const hIcon = el("img", node.isContact ? "contact" : "");
+    hIcon.src = A + (node.isContact ? "contact-small.png" : "dossier-ouvert-black.png");
+    hIcon.alt = "";
+    hl.append(hIcon, setT(el("p"), node.name));
+    const hr = el("div", "header-right");
+    const bMin = ctrlButton("min", "window-noir-reduire.png", UI.minimize);
+    const bFs = ctrlButton("fs", "window-noir-fullscreen.png", UI.fullscreen);
+    const bClose = ctrlButton("close", "window-noir-close.png", UI.close);
+    hr.append(bMin, bFs, bClose);
+    header.append(hl, hr);
+    const content = el("div", "window-content" + (node.isContact ? " contact" : ""));
+    win.append(header, content, el("div", "resize-handle"));
 
     // Taille & position (comme l'original : position aléatoire, en cascade)
     const vw = innerWidth, vh = innerHeight - footerH();
@@ -135,22 +218,23 @@
 
     // Onglet dans la barre des tâches
     const tab = el("div", "folder-footer");
-    tab.innerHTML = `<img src="${A}${node.isContact ? "contact-small.png" : "dossier-ouvert.png"}" alt="" /><span>${esc(node.name)}</span>`;
+    const tIcon = el("img");
+    tIcon.src = A + (node.isContact ? "contact-small.png" : "dossier-ouvert.png");
+    tIcon.alt = "";
+    tab.append(tIcon, setT(el("span"), node.name));
     tabs.append(tab);
 
     const state = { el: win, tab, node, min: false };
     wins.set(node.id, state);
     focusWin(node.id);
 
-    // Contenu
-    if (node.isContact) renderContact(content);
-    else renderFolder(node, content, win);
+    if (node.isContact) renderContact(content, true);
+    else renderFolder(node, content);
 
-    // Contrôles
-    $(".min", win).addEventListener("click", (e) => { e.stopPropagation(); minimize(node.id); });
-    $(".fs", win).addEventListener("click", (e) => { e.stopPropagation(); toggleFs(win); });
-    $(".close", win).addEventListener("click", (e) => { e.stopPropagation(); closeWin(node.id); });
-    $(".window-header", win).addEventListener("dblclick", (e) => { if (!e.target.closest("button")) toggleFs(win); });
+    bMin.addEventListener("click", (e) => { e.stopPropagation(); minimize(node.id); });
+    bFs.addEventListener("click", (e) => { e.stopPropagation(); toggleFs(win); });
+    bClose.addEventListener("click", (e) => { e.stopPropagation(); closeWin(node.id); });
+    header.addEventListener("dblclick", (e) => { if (!e.target.closest("button")) toggleFs(win); });
     win.addEventListener("pointerdown", () => focusWin(node.id));
     tab.addEventListener("click", () => {
       if (state.min) restore(node.id);
@@ -163,74 +247,91 @@
     genie(win, originEl && originEl.getBoundingClientRect());
   }
 
-  function renderFolder(node, content, win) {
+  function renderFolder(node, content) {
     const left = el("div", "left-content");
     content.append(left);
     let i = 0;
     (node.items || []).forEach((it, idx) => {
       const card = el("div", "imgPlusTitle");
       card.style.setProperty("--d", 0.18 + i++ * 0.045 + "s");
-      card.innerHTML = `<div class="thumb"><img alt="${esc(it.title || node.name)}" loading="lazy" decoding="async" /></div>${it.title ? `<h2>${esc(it.title)}</h2>` : ""}`;
-      const im = $("img", card);
-      const th = $(".thumb", card);
-      im.onload = () => th.classList.add("loaded");
-      im.onerror = () => { th.classList.add("loaded"); };
+      const th = el("div", "thumb");
+      const im = el("img");
+      im.loading = "lazy";
+      im.decoding = "async";
+      setA(im, "alt", it.title || node.name);
+      im.onload = im.onerror = () => th.classList.add("loaded");
       im.src = it.src;
-      card.addEventListener("click", () => openLightbox(node, idx, im));
+      th.append(im);
+      card.append(th);
+      if (it.title) card.append(setT(el("h2"), it.title));
+      card.addEventListener("click", () => openLightbox(node, idx));
       left.append(card);
     });
     (node.children || []).forEach((child) => {
       const f = el("div", "foldersInW folder-item");
       f.style.setProperty("--d", 0.18 + i++ * 0.05 + "s");
-      f.innerHTML = `<img src="${A}dossier.png" alt="" /><h2>${esc(child.name)}</h2>`;
-      f.addEventListener("click", () => openWindow(child, $("img", f)));
+      const im = el("img");
+      im.src = A + "dossier.png";
+      im.alt = "";
+      f.append(im, setT(el("h2"), child.name));
+      f.addEventListener("click", () => openWindow(child, im));
       left.append(f);
     });
     requestAnimationFrame(() => left.querySelectorAll(".imgPlusTitle, .foldersInW").forEach((c) => c.classList.add("in")));
 
     if (node.desc) {
       const right = el("div", "right-content");
-      const h3 = el("h3");
+      const h3 = el("h3", "i18n-desc");
+      h3._t = node.desc;
       right.append(h3);
       content.append(right);
-      typewrite(h3, node.desc, 250);
+      typewrite(h3, tr(node.desc), 250);
     }
   }
 
-  function renderContact(content) {
+  function renderContact(content, animate) {
+    content.textContent = "";
     let d = 0.15;
     CONTACT.lines.forEach((l) => {
       let node;
-      if (l.gap) node = el("br");
-      else if (l.small != null) {
+      if (l.gap) { content.append(el("br")); return; }
+      if (l.small != null) {
         node = el("h4");
-        node.append(document.createTextNode(l.small));
+        node.append(tr(l.small));
         (l.links || []).forEach(([t, h], k) => {
           if (k) node.append(" - ");
-          const a = el("a"); a.href = h; a.target = "_blank"; a.rel = "noopener"; a.textContent = t; node.append(a);
+          const a = el("a");
+          a.href = h; a.target = "_blank"; a.rel = "noopener"; a.textContent = t;
+          node.append(a);
         });
       } else {
         node = el("h2");
-        node.append(document.createTextNode(l.big));
+        node.append(tr(l.big));
         if (l.link) {
-          const a = el("a"); a.href = l.href; a.textContent = l.link;
+          const a = el("a");
+          a.href = l.href;
+          a.textContent = tr(l.link);
           if (!l.href.startsWith("mailto")) { a.target = "_blank"; a.rel = "noopener"; }
           node.append(a);
         }
       }
-      if (node.tagName !== "BR") { node.classList.add("line-in"); node.style.setProperty("--d", (d += 0.07) + "s"); }
+      if (animate) { node.classList.add("line-in"); node.style.setProperty("--d", (d += 0.06) + "s"); }
       content.append(node);
     });
   }
 
-  function typewrite(target, text, delay = 0) {
-    if (reduced) { target.textContent = text; return; }
+  function typewrite(target, text, delay = 0, speed = 1) {
+    target._tw = (target._tw || 0) + 1;
+    const run = target._tw;
+    if (reduced || speed === 0) { target.textContent = text; return; }
+    target.textContent = "";
     const caret = el("span", "caret");
     const tn = document.createTextNode("");
     target.append(tn, caret);
-    const total = clamp(text.length * 9, 400, 1400);
+    const total = clamp(text.length * 9, 400, 1400) * speed;
     let start = 0;
     const step = (t) => {
+      if (run !== target._tw) return; // un autre texte a pris la place
       if (!start) start = t;
       const p = clamp((t - start) / total, 0, 1);
       tn.data = text.slice(0, Math.round(p * text.length));
@@ -268,12 +369,11 @@
     w.tab.classList.add("out");
     setTimeout(() => w.tab.remove(), reduced ? 0 : 300);
     const done = () => w.el.remove();
-    if (reduced) return done();
-    w.el.animate(
+    if (reduced) done();
+    else w.el.animate(
       [{ transform: "scale(1)", opacity: 1, filter: "blur(0)" }, { transform: "scale(0.88)", opacity: 0, filter: "blur(4px)" }],
       { duration: 260, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" }
     ).finished.then(done, done);
-    // Re-focus the top-most remaining window
     let best = null, bz = -1;
     wins.forEach((o, k) => { const zz = +o.el.style.zIndex || 0; if (!o.min && zz > bz) { bz = zz; best = k; } });
     if (best) focusWin(best);
@@ -299,9 +399,8 @@
     });
     header.addEventListener("pointermove", (e) => {
       if (!dragging) return;
-      const maxTop = innerHeight - footerH() - 40;
       win.style.left = clamp(ox + e.clientX - sx, -win.offsetWidth + 80, innerWidth - 80) + "px";
-      win.style.top = clamp(oy + e.clientY - sy, 0, maxTop) + "px";
+      win.style.top = clamp(oy + e.clientY - sy, 0, innerHeight - footerH() - 40) + "px";
       vx = vx * 0.7 + (e.clientX - lastX) * 0.3;
       lastX = e.clientX;
       if (!reduced) win.style.transform = `rotate(${clamp(vx * 0.35, -4, 4)}deg) scale(1.01)`;
@@ -335,87 +434,197 @@
   }
 
   /* ---------- Visionneuse ---------- */
-  const lb = $("#lightbox"), track = $("#lbTrack"), counter = $("#lbCounter");
-  let lbItems = [], lbIndex = 0, lbOpen = false;
+  // Une image à la fois : le cadre prend la taille exacte de l'image + du texte,
+  // et s'anime d'une taille à l'autre.
+  const lb = $("#lightbox"), modal = $(".modal", lb), stage = $("#lbTrack"), counter = $("#lbCounter");
+  const btnPrev = $("#lbPrev"), btnNext = $("#lbNext"), btnClose = $("#lbClose");
+  let lbItems = [], lbNode = null, lbIndex = 0, lbOpen = false, lbToken = 0;
+  const cache = new Map();
 
-  function openLightbox(node, index) {
-    lbItems = node.items;
-    track.innerHTML = "";
-    track.style.transition = "none";
-    lbItems.forEach((it) => {
-      const s = el("div", "carousel_item");
-      s.innerHTML = `<img class="imgCarousel" alt="${esc(it.title || node.name)}" />${it.desc ? `<h3 class="description_img">${esc(it.desc)}</h3>` : ""}`;
-      track.append(s);
-    });
-    const many = lbItems.length > 1;
-    $("#lbPrev").style.display = $("#lbNext").style.display = many ? "" : "none";
-    counter.style.display = many ? "" : "none";
-    go(index, true);
-    lb.classList.add("bg-active");
-    lbOpen = true;
-    requestAnimationFrame(() => requestAnimationFrame(() => (track.style.transition = "")));
+  function preload(src) {
+    if (!cache.has(src)) {
+      cache.set(src, new Promise((res) => {
+        const im = new Image();
+        im.onload = im.onerror = () => res();
+        im.src = src;
+      }));
+    }
+    return cache.get(src);
   }
 
-  function load(i) {
-    const s = track.children[i];
-    if (!s) return;
-    const im = $("img", s);
-    if (!im.src) {
-      const ok = () => s.classList.add("ready");
-      im.onload = ok; im.onerror = ok;
-      im.src = lbItems[i].src;
+  function buildFig(it) {
+    const fig = el("figure", "lb-fig");
+    const im = el("img");
+    im.src = it.src;
+    im.alt = tr(it.title || (lbNode && lbNode.name));
+    im.draggable = false;
+    fig.append(im);
+    if (it.desc) {
+      const cap = el("figcaption", "description_img");
+      cap.textContent = tr(it.desc);
+      fig.append(cap);
+    }
+    return fig;
+  }
+
+  // Remplace le contenu en animant le cadre de l'ancienne à la nouvelle taille
+  function swap(node, dir) {
+    const before = modal.getBoundingClientRect();
+    const old = stage.firstElementChild;
+    stage.replaceChildren(node);
+    if (reduced || !lbOpen || !old) return;
+    const after = modal.getBoundingClientRect();
+    modal.animate(
+      [{ width: before.width + "px", height: before.height + "px" }, { width: after.width + "px", height: after.height + "px" }],
+      { duration: 420, easing: "cubic-bezier(.16,1,.3,1)" }
+    );
+    if (dir) {
+      node.animate(
+        [{ transform: `translateX(${dir * 60}px)`, opacity: 0, filter: "blur(4px)" }, { transform: "none", opacity: 1, filter: "blur(0)" }],
+        { duration: 420, easing: "cubic-bezier(.16,1,.3,1)" }
+      );
     }
   }
 
-  function go(i, instant) {
+  function go(i, dir = 0) {
     const n = lbItems.length;
     lbIndex = (i + n) % n;
-    [lbIndex, (lbIndex + 1) % n, (lbIndex - 1 + n) % n].forEach(load);
-    if (instant) track.style.transition = "none";
-    track.style.transform = `translateX(${-lbIndex * 100}%)`;
-    [...track.children].forEach((c, k) => c.classList.toggle("current", k === lbIndex));
+    const it = lbItems[lbIndex];
+    const token = ++lbToken;
     counter.innerHTML = `<b class="tick">${lbIndex + 1}</b> / ${n}`;
+    const ready = preload(it.src);
+    let shownLoader = false;
+    const loaderTimer = setTimeout(() => {
+      if (token !== lbToken) return;
+      shownLoader = true;
+      swap(el("div", "lb-loading"), 0);
+    }, 120);
+    ready.then(() => {
+      if (token !== lbToken) return;
+      clearTimeout(loaderTimer);
+      swap(buildFig(it), shownLoader ? 0 : dir);
+      // précharge les voisines
+      if (n > 1) { preload(lbItems[(lbIndex + 1) % n].src); preload(lbItems[(lbIndex - 1 + n) % n].src); }
+    });
+  }
+
+  function renderLightbox(node, index) {
+    lbNode = node;
+    lbItems = node.items;
+    const cur = stage.firstElementChild;
+    if (cur && cur.classList.contains("lb-fig") && lbItems[index]) {
+      // changement de langue : on met juste à jour le texte, sans animation
+      stage.replaceChildren(buildFig(lbItems[index]));
+    } else go(index);
+  }
+
+  function openLightbox(node, index) {
+    lbNode = node;
+    lbItems = node.items;
+    stage.replaceChildren();
+    const many = lbItems.length > 1;
+    btnPrev.style.display = btnNext.style.display = many ? "" : "none";
+    counter.style.display = many ? "" : "none";
+    lbOpen = false; // pas d'animation de taille pour la première image
+    go(index);
+    lb.classList.add("bg-active");
+    requestAnimationFrame(() => (lbOpen = true));
   }
 
   function closeLightbox() {
     lb.classList.remove("bg-active");
     lbOpen = false;
+    lbToken++;
   }
 
-  $("#lbNext").addEventListener("click", () => go(lbIndex + 1));
-  $("#lbPrev").addEventListener("click", () => go(lbIndex - 1));
-  $("#lbClose").addEventListener("click", closeLightbox);
+  // Flèches (on ignore le clic qui suit un swipe)
+  let justSwiped = false;
+  btnNext.addEventListener("click", () => { if (!justSwiped) go(lbIndex + 1, 1); });
+  btnPrev.addEventListener("click", () => { if (!justSwiped) go(lbIndex - 1, -1); });
+  btnClose.addEventListener("click", closeLightbox);
   lb.addEventListener("click", (e) => { if (e.target === lb) closeLightbox(); });
 
-  // Swipe
-  let swX = null, swDX = 0;
-  track.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") { swX = e.clientX; swDX = 0; track.style.transition = "none"; } });
-  track.addEventListener("pointermove", (e) => {
-    if (swX == null) return;
-    swDX = e.clientX - swX;
-    track.style.transform = `translateX(calc(${-lbIndex * 100}% + ${swDX}px))`;
-  });
-  const swEnd = () => {
-    if (swX == null) return;
-    track.style.transition = "";
-    if (Math.abs(swDX) > 50) go(lbIndex + (swDX < 0 ? 1 : -1));
-    else go(lbIndex);
-    swX = null;
+  // Swipe au doigt, sur toute la visionneuse (y compris par-dessus les zones des flèches)
+  let tx = null, ty = 0, tdx = 0, axis = null, tStart = 0;
+  modal.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || lbItems.length < 2) return;
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+    tdx = 0; axis = null; tStart = performance.now();
+  }, { passive: true });
+  modal.addEventListener("touchmove", (e) => {
+    if (tx == null) return;
+    const dx = e.touches[0].clientX - tx, dy = e.touches[0].clientY - ty;
+    if (!axis && Math.abs(dx) + Math.abs(dy) > 8) axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (axis !== "x") return;
+    e.preventDefault();
+    tdx = dx;
+    const fig = stage.firstElementChild;
+    if (fig) {
+      fig.style.transition = "none";
+      fig.style.transform = `translateX(${dx}px) rotate(${dx * 0.02}deg)`;
+      fig.style.opacity = String(1 - Math.min(0.6, Math.abs(dx) / 600));
+    }
+  }, { passive: false });
+  const touchEnd = () => {
+    if (tx == null) return;
+    const wasX = axis === "x";
+    tx = null;
+    if (!wasX) return;
+    justSwiped = true;
+    setTimeout(() => (justSwiped = false), 400);
+    const fast = Math.abs(tdx) / Math.max(1, performance.now() - tStart) > 0.4;
+    if (Math.abs(tdx) > modal.offsetWidth * 0.18 || (fast && Math.abs(tdx) > 30)) {
+      const d = tdx < 0 ? 1 : -1;
+      go(lbIndex + d, d);
+    } else {
+      // pas assez loin : l'image revient en place
+      const fig = stage.firstElementChild;
+      if (fig) {
+        fig.style.transition = "transform .4s cubic-bezier(.34,1.56,.64,1), opacity .3s";
+        fig.style.transform = "";
+        fig.style.opacity = "";
+      }
+    }
   };
-  track.addEventListener("pointerup", swEnd);
-  track.addEventListener("pointercancel", swEnd);
+  modal.addEventListener("touchend", touchEnd);
+  modal.addEventListener("touchcancel", touchEnd);
 
   addEventListener("keydown", (e) => {
     if (!lbOpen) return;
-    if (e.key === "ArrowRight") go(lbIndex + 1);
-    else if (e.key === "ArrowLeft") go(lbIndex - 1);
+    if (e.key === "ArrowRight") go(lbIndex + 1, 1);
+    else if (e.key === "ArrowLeft") go(lbIndex - 1, -1);
     else if (e.key === "Escape") closeLightbox();
   });
 
+  setA(lb, "aria-label", UI.viewer);
+  setA(btnPrev, "aria-label", UI.prev);
+  setA(btnNext, "aria-label", UI.next);
+  setA(btnClose, "aria-label", UI.close);
+
   /* ---------- Barre des tâches ---------- */
-  $("#b6").addEventListener("click", () => {
+  const b6 = $("#b6");
+  setA(b6, "alt", UI.minimizeAll);
+  setA(b6, "title", UI.minimizeAll);
+  b6.addEventListener("click", () => {
     let k = 0;
     [...wins.keys()].reverse().forEach((id) => minimize(id, reduced ? 0 : k++ * 70));
+  });
+
+  // Sélecteur de langue
+  const langBox = $("#langs");
+  setA(langBox, "aria-label", UI.language);
+  LANGS.forEach((l) => {
+    const b = el("button", "folder-footer lang-btn");
+    b.type = "button";
+    b.dataset.lang = l.code;
+    b.textContent = l.label;
+    b.setAttribute("lang", l.code);
+    b.addEventListener("click", () => {
+      if (l.code === lang) return;
+      applyLang(l.code, true);
+      if (!reduced) b.animate([{ transform: "scale(0.8)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], { duration: 350, easing: "ease-out" });
+    });
+    langBox.append(b);
   });
 
   const clock = $("#clock");
@@ -426,6 +635,8 @@
   };
   tickClock();
   setInterval(tickClock, 5000);
+
+  applyLang(lang, false);
 
   /* ---------- Démarrage ---------- */
   function startDesktop() {

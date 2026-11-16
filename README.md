@@ -4,7 +4,7 @@ Même design que b-vi.fr (bureau, dossiers, fenêtres), même contenu, réécrit
 
 ## Fichiers
 - `index.html` — la page
-- `data.js` — **tout le contenu** (dossiers, images, titres, textes) : c'est le seul fichier à modifier pour ajouter un projet
+- `data.js` — **tout le contenu** (dossiers, images, titres, textes) en français, anglais et italien : c'est le seul fichier à modifier pour ajouter un projet ou corriger une traduction. Chaque texte s'écrit `T("français", "english", "italiano")`.
 - `style.css` — le design
 - `app.js` — fenêtres, visionneuse, animations
 - `assets/` — icônes d'origine + police Px Grotesk Screen
@@ -14,3 +14,6 @@ Copier le dossier à la racine de b-vi.fr, à côté du dossier `images/` exista
 
 ## Animations
 Écran de démarrage, icônes qui arrivent en cascade, fenêtres qui s'ouvrent depuis l'icône et se réduisent dans la barre des tâches, inclinaison pendant le glisser, plein écran animé, miniatures en cascade, texte tapé à la machine, visionneuse avec glissement, swipe et compteur, halo qui suit la souris, grain animé, économiseur d'écran B6 après 90 s, Konami code. Tout est coupé si l'utilisateur a demandé moins d'animations.
+
+## Langues
+Boutons FR / EN / IT dans la barre du bas. Le changement se fait sans recharger la page, la langue choisie est mémorisée, et à la première visite le site prend la langue du navigateur (français par défaut).
