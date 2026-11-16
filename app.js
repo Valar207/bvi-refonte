@@ -487,10 +487,15 @@
   }
 
   // Remplace le contenu en animant le cadre de l'ancienne à la nouvelle taille
+  // Les zones cliquables « précédente / suivante » s'arrêtent au-dessus de la légende (lien cliquable, pas de flèche dessus)
+  const zones = () => { const cap = stage.querySelector("figcaption"); modal.style.setProperty("--cap-h", (cap ? cap.offsetHeight : 0) + "px"); };
+  if (window.ResizeObserver) new ResizeObserver(zones).observe(stage);
+
   function swap(node, dir) {
     const before = modal.getBoundingClientRect();
     const old = stage.firstElementChild;
     stage.replaceChildren(node);
+    zones();
     if (reduced || !lbOpen || !old) return;
     const after = modal.getBoundingClientRect();
     modal.animate(
@@ -534,6 +539,7 @@
     if (cur && cur.classList.contains("lb-fig") && lbItems[index]) {
       // changement de langue : on met juste à jour le texte, sans animation
       stage.replaceChildren(buildFig(lbItems[index]));
+      zones();
     } else go(index);
   }
 

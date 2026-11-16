@@ -28,4 +28,7 @@ Lucas met à jour le site sans code ni FTP sur **b-vi.fr/admin** (identifiant `L
 - `.htaccess` à la racine : `content.js` toujours rechargé (pas de cache).
 
 ## Liens dans les textes
-Dans les descriptions des dossiers et les légendes de la visionneuse, un lien s'écrit `[texte](https://adresse)` (ou `mailto:`). Sur le site, seul « texte » s'affiche, cliquable (nouvel onglet). Dans l'administration, le bouton « 🔗 Insérer un lien » l'écrit à la place du curseur. Code : `LIEN`, `sansLiens` et `avecLiens` dans `app.js` (la machine à écrire tape le texte simple, puis les liens apparaissent à la fin).
+Dans les descriptions des dossiers et les légendes de la visionneuse, un lien s'écrit `[texte](https://adresse)` (ou `mailto:`). Sur le site, seul « texte » s'affiche, cliquable (nouvel onglet). Dans l'administration, le bouton « 🔗 Insérer un lien » l'écrit à la place du curseur. Code : `LIEN`, `sansLiens` et `avecLiens` dans `app.js` (la machine à écrire tape le texte simple, puis les liens apparaissent à la fin). Dans la visionneuse, les zones « précédente / suivante » s'arrêtent au-dessus de la légende (`--cap-h`), pour que ses liens restent cliquables.
+
+## Cache
+`index.html` charge les fichiers avec `?v=AAAAMMJJHHMM` (à changer à chaque modification de app.js, data.js ou style.css), et `.htaccess` impose `Cache-Control: no-cache` sur index.html, content.js, data.js, app.js et style.css : les visiteurs voient toujours la dernière version.

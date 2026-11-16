@@ -371,7 +371,7 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .prevBtn, .nextBtn {
-  position: absolute; top: 0; bottom: 0; z-index: 3; background: none; border: 0;
+  position: absolute; top: 0; bottom: var(--cap-h, 0px); z-index: 3; background: none; border: 0;
   display: flex; align-items: center; color: white; font-size: 34px; text-shadow: 0 0 4px #000;
   font-family: inherit;
 }
