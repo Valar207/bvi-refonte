@@ -739,7 +739,7 @@
     }
   });
 
-  /* ---------- Easter egg : taper « lucasbessis » → explosion pixel, puis 3 danseuses (≈ 7,5 s) ---------- */
+  /* ---------- Easter egg : taper « lucasbessis » → explosion pixel, puis 3 danseuses (≈ 20 s) ---------- */
   const MOT = "lucasbessis";
   let tape = "";
   addEventListener("keydown", (e) => {
@@ -767,9 +767,9 @@
       { peau: "#8d5524", cheveux: "#2b1b14", maillot: "#2ec4b6", dx: 0, ph: 1 },
       { peau: "#ffdbac", cheveux: "#c0392b", maillot: "#ffd23f", dx: 32, ph: 2 },
     ];
-    const notes = Array.from({ length: 8 }, (_, k) => ({ x: 20 + Math.random() * (W - 40), t0: 2 + k * 0.6 + Math.random() * 0.4, c: ["#ff4fa3", "#2ec4b6", "#ffd23f", "#ffffff"][k % 4] }));
+    const notes = Array.from({ length: 30 }, (_, k) => ({ x: 20 + Math.random() * (W - 40), t0: 2 + k * 0.58 + Math.random() * 0.4, c: ["#ff4fa3", "#2ec4b6", "#ffd23f", "#ffffff"][k % 4] }));
     const NOTE = ["..##", "..#.", "..#.", "###.", "###."];
-    const DUREE = reduced ? 3 : 7.6;
+    const DUREE = reduced ? 3 : 20;
     // la musique : le clip officiel, intégré depuis YouTube (lecture lancée par la frappe au clavier), dans une petite fenêtre du site
     const rick = el("div", "rick");
     const barre = el("div", "rick-barre"); barre.textContent = "never_gonna.exe";
