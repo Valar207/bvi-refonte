@@ -18,34 +18,42 @@
 
 html, body { height: 100%; overflow: hidden; }
 
+:root { animation: bgcycle 200s infinite; }
+
 body {
   font-family: PxGroteskScreen, ui-monospace, monospace;
   color: white;
-  animation: colorchange 200s infinite;
+  background: var(--bg);
   -webkit-font-smoothing: none;
   user-select: none;
   -webkit-user-select: none;
 }
 
-@keyframes colorchange {
-  0%, 100% { background: #625aff; }
-  5.5% { background: #9759fd; }
-  11% { background: #ce59fe; }
-  16.5% { background: #fe59f6; }
-  22% { background: #fe59bf; }
-  27.5% { background: #fd5988; }
-  33% { background: #fe6159; }
-  38.5% { background: #fd9759; }
-  44% { background: #fece59; }
-  49.5% { background: #f5fd59; }
-  55% { background: #bffe59; }
-  60.5% { background: #88fe59; }
-  66% { background: #5afe61; }
-  71.5% { background: #5afe97; }
-  77% { background: #59fece; }
-  82.5% { background: #5af6fe; }
-  88% { background: #59bffe; }
-  92.5% { background: #5988fd; }
+/* Couleur du fond : une seule variable animée, réutilisée ailleurs (titres au survol) */
+@property --bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #625aff;
+}
+@keyframes bgcycle {
+  0%, 100% { --bg: #625aff; }
+  5.5% { --bg: #9759fd; }
+  11% { --bg: #ce59fe; }
+  16.5% { --bg: #fe59f6; }
+  22% { --bg: #fe59bf; }
+  27.5% { --bg: #fd5988; }
+  33% { --bg: #fe6159; }
+  38.5% { --bg: #fd9759; }
+  44% { --bg: #fece59; }
+  49.5% { --bg: #f5fd59; }
+  55% { --bg: #bffe59; }
+  60.5% { --bg: #88fe59; }
+  66% { --bg: #5afe61; }
+  71.5% { --bg: #5afe97; }
+  77% { --bg: #59fece; }
+  82.5% { --bg: #5af6fe; }
+  88% { --bg: #59bffe; }
+  92.5% { --bg: #5988fd; }
 }
 
 a { color: var(--accent); text-decoration: none; position: relative; }
@@ -253,7 +261,7 @@ h4 { padding: 8px; color: white; font-size: 12px; line-height: 20px; font-weight
 .thumb.loaded img { opacity: 1; transform: scale(1); }
 .imgPlusTitle:hover .thumb img { transform: scale(1.08); }
 .imgPlusTitle h2 { font-size: 18px; line-height: 22px; transition: color 0.2s; }
-.imgPlusTitle:hover h2 { color: #fece59; }
+.imgPlusTitle:hover h2 { color: var(--bg); }
 
 .foldersInW {
   cursor: pointer; margin: 1rem; width: 145px; text-align: center;
@@ -406,6 +414,7 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root { animation: none !important; }
   *, *::before, *::after { animation-duration: 0.001s !important; animation-delay: 0s !important; transition-duration: 0.001s !important; }
   .grain, .spotlight { display: none; }
 }
