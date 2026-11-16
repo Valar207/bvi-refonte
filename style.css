@@ -260,8 +260,9 @@ h4 { padding: 8px; color: white; font-size: 12px; line-height: 20px; font-weight
 }
 .thumb.loaded img { opacity: 1; transform: scale(1); }
 .imgPlusTitle:hover .thumb img { transform: scale(1.08); }
-.imgPlusTitle h2 { font-size: 18px; line-height: 22px; transition: color 0.2s; }
-.imgPlusTitle:hover h2 { color: var(--bg); }
+/* Couleur d'accent = couleur du fond (animée), seulement dans les fenêtres noires (pas sur le bureau) */
+.window-content { --accent: var(--bg); }
+.imgPlusTitle h2 { font-size: 18px; line-height: 22px; color: var(--bg); }
 
 .foldersInW {
   cursor: pointer; margin: 1rem; width: 145px; text-align: center;
@@ -270,7 +271,15 @@ h4 { padding: 8px; color: white; font-size: 12px; line-height: 20px; font-weight
 .foldersInW.in { animation: thumbIn 0.6s var(--ease-spring) forwards; animation-delay: var(--d, 0s); }
 .foldersInW img { height: 3rem; transition: transform 0.45s var(--ease-spring); }
 .foldersInW:hover img { transform: translateY(-5px) scale(1.12) rotate(-4deg); }
-.foldersInW h2 { font-size: 20px; line-height: 24px; }
+.foldersInW h2 { font-size: 20px; line-height: 24px; transition: color 0.2s; }
+.foldersInW:hover h2 { color: var(--bg); }
+/* l'icône du dossier prend aussi la couleur d'accent au survol : l'image sert de masque, la couleur vient du fond animé */
+.foldersInW:hover img {
+  object-fit: none; object-position: -9999px 0;
+  background: var(--bg);
+  -webkit-mask: url("assets/dossier.png") center / contain no-repeat;
+  mask: url("assets/dossier.png") center / contain no-repeat;
+}
 
 .resize-handle {
   position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; z-index: 2;
