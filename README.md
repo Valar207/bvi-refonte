@@ -26,3 +26,6 @@ Lucas met à jour le site sans code ni FTP sur **b-vi.fr/admin** (identifiant `L
 - Données privées **hors du web**, dans `bvi-admin/` à côté de `www/` : `auth.php` (identifiant + mot de passe chiffré bcrypt), `data/<instance>/contenu.json` (contenu publié), `data/<instance>/versions/`, `essais.json` (5 essais de connexion ratés → 10 min de blocage). L'instance vaut `prod` pour le site à la racine, `nouveau` pour la copie de test dans `/nouveau/`.
 - Les photos envoyées vont dans `images/<rubrique>/<dossier>/` et ne sont jamais écrasées ni supprimées du serveur (« Retirer » les enlève seulement du site).
 - `.htaccess` à la racine : `content.js` toujours rechargé (pas de cache).
+
+## Liens dans les textes
+Dans les descriptions des dossiers et les légendes de la visionneuse, un lien s'écrit `[texte](https://adresse)` (ou `mailto:`). Sur le site, seul « texte » s'affiche, cliquable (nouvel onglet). Dans l'administration, le bouton « 🔗 Insérer un lien » l'écrit à la place du curseur. Code : `LIEN`, `sansLiens` et `avecLiens` dans `app.js` (la machine à écrire tape le texte simple, puis les liens apparaissent à la fin).

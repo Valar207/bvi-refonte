@@ -320,10 +320,29 @@
     });
   }
 
+  // Liens dans les textes : [texte](https://adresse) → texte cliquable (seulement http, https et mailto)
+  const LIEN = /\[([^\]\n]+)\]\(((?:https?:\/\/|mailto:)[^\s)]+)\)/g;
+  const sansLiens = (s) => s.replace(LIEN, "$1");
+  function avecLiens(target, s) {
+    target.textContent = "";
+    let i = 0;
+    for (const m of s.matchAll(LIEN)) {
+      if (m.index > i) target.append(s.slice(i, m.index));
+      const a = el("a");
+      a.href = m[2]; a.textContent = m[1];
+      if (!m[2].startsWith("mailto:")) { a.target = "_blank"; a.rel = "noopener"; }
+      target.append(a);
+      i = m.index + m[0].length;
+    }
+    if (i < s.length) target.append(s.slice(i));
+  }
+
   function typewrite(target, text, delay = 0, speed = 1) {
     target._tw = (target._tw || 0) + 1;
     const run = target._tw;
-    if (reduced || speed === 0) { target.textContent = text; return; }
+    const riche = text;
+    text = sansLiens(text);   // on tape le texte simple, puis les liens apparaissent à la fin
+    if (reduced || speed === 0) { avecLiens(target, riche); return; }
     target.textContent = "";
     const caret = el("span", "caret");
     const tn = document.createTextNode("");
@@ -336,7 +355,7 @@
       const p = clamp((t - start) / total, 0, 1);
       tn.data = text.slice(0, Math.round(p * text.length));
       if (p < 1) requestAnimationFrame(step);
-      else setTimeout(() => caret.remove(), 900);
+      else { if (riche !== text) { avecLiens(target, riche); target.append(caret); } setTimeout(() => caret.remove(), 900); }
     };
     setTimeout(() => requestAnimationFrame(step), delay);
   }
@@ -461,7 +480,7 @@
     fig.append(im);
     if (it.desc) {
       const cap = el("figcaption", "description_img");
-      cap.textContent = tr(it.desc);
+      avecLiens(cap, tr(it.desc));
       fig.append(cap);
     }
     return fig;

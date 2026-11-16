@@ -54,13 +54,40 @@
     if (!v.fr && (v.en || v.it)) v.fr = "";
     if (!Object.keys(v).length || Object.values(v).every((x) => x === "")) delete obj[key]; else obj[key] = v;
   }
-  function champsLangues(obj, key, { lignes = 3, placeholder = "" } = {}) {
+  function champsLangues(obj, key, { lignes = 3, placeholder = "", liens = false } = {}) {
     return el("div", { class: "langues" }, LANGS.map(([l, nom]) => {
       const ta = el("textarea", { rows: lignes, placeholder: l === "fr" ? placeholder : "Vide = texte français affiché" });
       ta.value = tVal(obj[key], l);
       ta.addEventListener("input", () => { tSet(obj, key, l, ta.value); change(); });
-      return el("label", {}, nom, ta);
+      const lab = el("label", {}, nom, ta);
+      return liens ? el("div", { class: "champ-lien" }, lab, outilLien(ta)) : lab;
     }));
+  }
+
+  // « Insérer un lien » : ajoute [texte](adresse) à l'endroit du curseur ; sur le site, le texte devient cliquable
+  function outilLien(ta) {
+    const txt = el("input", { type: "text", placeholder: "Texte affiché (ex. voir le site)" });
+    const url = el("input", { type: "text", placeholder: "https://… ou mailto:…", inputmode: "url", autocapitalize: "none" });
+    const msg = el("span", { class: "msg err" });
+    const form = el("div", { class: "form-lien", hidden: true }, txt, url,
+      el("div", { class: "actions-lien" },
+        el("button", { class: "b sm pri", type: "button", onclick: () => {
+          let u = url.value.trim(); const x = txt.value.trim().replace(/[\[\]]/g, "");
+          if (u && !/^(https?:\/\/|mailto:)/i.test(u)) u = (u.includes("@") && !u.includes("/") ? "mailto:" : "https://") + u;
+          if (!x || !/^(https?:\/\/|mailto:)[^\s)]+$/i.test(u)) { msg.textContent = "Mets un texte et une adresse valide."; return; }
+          const a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a;
+          const av = ta.value.slice(0, a), ap = ta.value.slice(b);
+          const lien = (av && !/\s$/.test(av) ? " " : "") + "[" + x + "](" + u + ")" + (ap && !/^[\s.,;:!?)]/.test(ap) ? " " : "");
+          ta.value = av + lien + ap;
+          ta.dispatchEvent(new Event("input"));
+          txt.value = url.value = msg.textContent = ""; form.hidden = true; ta.focus();
+        } }, "Insérer"),
+        el("button", { class: "b sm", type: "button", onclick: () => { form.hidden = true; } }, "Annuler"), msg));
+    const ouvrir = el("button", { class: "b sm lien-btn", type: "button", onclick: () => {
+      form.hidden = !form.hidden;
+      if (!form.hidden) { const s = ta.value.slice(ta.selectionStart, ta.selectionEnd); if (s) txt.value = s; (s ? url : txt).focus(); }
+    } }, "🔗 Insérer un lien");
+    return el("div", {}, ouvrir, form);
   }
 
   /* ---------- brouillon & état ---------- */
@@ -176,7 +203,8 @@
         el("button", { class: "b sm", type: "button", title: "Descendre", disabled: idx === freres.length - 1, onclick: () => { if (deplacer(freres, idx, 1)) { ch[ch.length - 1]++; change(); rendu(); } } }, "↓"),
         supp),
       el("section", { class: "bloc" }, el("h2", {}, "Description", el("span", { class: "aide", text: "texte du panneau de droite de la fenêtre" })),
-        champsLangues(n, "desc", { placeholder: "Ex. : Signalétique et identité visuelle pour… 2024" })),
+        champsLangues(n, "desc", { placeholder: "Ex. : Signalétique et identité visuelle pour… 2024", liens: true }),
+        el("p", { class: "vide", text: "Un lien s'écrit [texte](https://adresse) : sur le site, seul le texte s'affiche, cliquable." })),
       blocSousDossiers(n, ch),
       blocImages(n, ch));
   }
@@ -208,7 +236,7 @@
       v.style.backgroundImage = `url("${IMG(it.src)}")`;
       const titre = el("input", { type: "text", value: it.title || "", placeholder: "Titre (facultatif)", maxlength: 200 });
       titre.addEventListener("input", () => { if (titre.value.trim()) it.title = titre.value; else delete it.title; change(); });
-      const leg = el("details", {}, el("summary", { text: "Légende dans la visionneuse" + (it.desc ? " ✓" : "") }), champsLangues(it, "desc", { lignes: 2 }));
+      const leg = el("details", {}, el("summary", { text: "Légende dans la visionneuse" + (it.desc ? " ✓" : "") }), champsLangues(it, "desc", { lignes: 2, liens: true }));
       const carte = el("div", { class: "carte" }, v,
         el("div", { class: "champs" }, titre, leg),
         el("div", { class: "actions" },

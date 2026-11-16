@@ -262,6 +262,9 @@ h4 { padding: 8px; color: white; font-size: 12px; line-height: 20px; font-weight
 .imgPlusTitle:hover .thumb img { transform: scale(1.08); }
 /* Couleur d'accent = couleur du fond (animée), seulement dans les fenêtres noires (pas sur le bureau) */
 .window-content { --accent: var(--bg); }
+/* liens dans les légendes de la visionneuse (cadre blanc) : couleur du texte, soulignés */
+.description_img a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.description_img a::after { display: none; }
 .imgPlusTitle h2 { font-size: 18px; line-height: 22px; color: var(--bg); }
 
 .foldersInW {

@@ -73,6 +73,12 @@ section.bloc > h2 .aide { font-family: system-ui, sans-serif; font-size: 13px; c
 .langues { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 900px) { .langues { grid-template-columns: minmax(0, 1fr); } }
 
+/* Lien dans un texte */
+.champ-lien { display: flex; flex-direction: column; gap: 6px; }
+.lien-btn { align-self: flex-start; }
+.form-lien { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #101010; }
+.actions-lien { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
 /* Sous-dossiers */
 .liste { display: flex; flex-direction: column; gap: 6px; }
 .ligne { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: #141414; }
