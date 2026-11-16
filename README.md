@@ -4,7 +4,7 @@ Même design que b-vi.fr (bureau, dossiers, fenêtres), même contenu, réécrit
 
 ## Fichiers
 - `index.html` — la page
-- `data.js` — **tout le contenu** (dossiers, images, titres, textes) en français, anglais et italien : c'est le seul fichier à modifier pour ajouter un projet ou corriger une traduction. Chaque texte s'écrit `T("français", "english", "italiano")`.
+- `data.js` — **tout le contenu** (dossiers, images, titres, textes) : c'est le seul fichier à modifier pour ajouter un projet ou corriger une traduction. Les noms des dossiers et les titres des images restent en français ; les descriptions s'écrivent `T("français", "english", "italiano")`.
 - `style.css` — le design
 - `app.js` — fenêtres, visionneuse, animations
 - `assets/` — icônes d'origine + police Px Grotesk Screen
