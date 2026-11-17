@@ -149,7 +149,7 @@
       const actif = sel.k === "dossier" && sel.chemin.join() === chemin.join();
       return el("li", {},
         el("button", { class: "noeud", type: "button", "aria-current": String(actif), onclick: () => choisir({ k: "dossier", chemin }) },
-          el("span", { text: (n.children && n.children.length ? "▸ " : "· ") + n.name }), el("span", { class: "n", text: String(nbImages(n)) })),
+          el("span", { text: (n.children && n.children.length ? "▸ " : "· ") + n.name }), el("span", { class: "n" + (n.nouveau ? " est-nouveau" : ""), text: String(nbImages(n)) })),
         n.children && n.children.length ? liste(n.children, chemin) : null);
     }));
     const mobile = window.matchMedia("(max-width: 820px)").matches;
@@ -206,6 +206,7 @@
         el("button", { class: "b sm", type: "button", title: "Monter", disabled: idx === 0, onclick: () => { if (deplacer(freres, idx, -1)) { ch[ch.length - 1]--; change(); rendu(); } } }, "↑"),
         el("button", { class: "b sm", type: "button", title: "Descendre", disabled: idx === freres.length - 1, onclick: () => { if (deplacer(freres, idx, 1)) { ch[ch.length - 1]++; change(); rendu(); } } }, "↓"),
         supp),
+      (() => { const cb = el("input", { type: "checkbox", checked: n.nouveau ? true : null }); cb.addEventListener("change", () => { if (cb.checked) n.nouveau = true; else delete n.nouveau; change(); const b = document.querySelector('.noeud[aria-current="true"] .n'); if (b) b.classList.toggle("est-nouveau", cb.checked); }); return el("label", { class: "case-nouveau" }, cb, el("span", {}, "Afficher le badge « nouveau » sur ce dossier", el("small", { text: " (un point apparaît aussi sur les dossiers qui le contiennent)" }))); })(),
       el("section", { class: "bloc" }, el("h2", {}, "Description", el("span", { class: "aide", text: "texte du panneau de droite de la fenêtre" })),
         champsLangues(n, "desc", { placeholder: "Ex. : Signalétique et identité visuelle pour… 2024", liens: true }),
         el("p", { class: "vide", text: "Un lien s'écrit [texte](https://adresse) : sur le site, seul le texte s'affiche, cliquable." })),

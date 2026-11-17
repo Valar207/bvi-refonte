@@ -51,3 +51,6 @@ Un élément d'un dossier peut être une vidéo : `{ video: "https://youtu.be/�
 
 ## Statistiques
 Mesure d'audience maison, anonyme et sans cookie (pas de bandeau de consentement nécessaire) : `stats.php` reçoit une visite par onglet (avec le site d'où l'on vient) et chaque dossier ouvert (une fois par onglet), envoyés par `mesurer()` dans app.js avec `navigator.sendBeacon`. Les robots et aperçus de liens sont ignorés, et les visites de Lucas connecté à l'admin ne sont pas comptées. Seuls des compteurs sont gardés (jour, dossier, source, téléphone/ordinateur), dans `bvi-admin/data/prod/stats/AAAA-MM.json`. Lecture : bouton « Statistiques » de l'administration (30 jours ou 12 mois).
+
+## Badge « nouveau »
+Dans l'administration, chaque dossier a une case « Afficher le badge nouveau » (`nouveau: true` dans le contenu). Sur le site, une étiquette « nouveau / new / nuovo » s'affiche sur l'icône du dossier (bureau et fenêtres), et un petit carré blanc sur les dossiers qui en contiennent un (`badgeNouveau()` dans app.js).

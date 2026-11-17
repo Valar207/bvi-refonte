@@ -147,3 +147,10 @@ section.bloc > h2 .aide { font-family: system-ui, sans-serif; font-size: 13px; c
 .st-liste { display: flex; flex-direction: column; gap: 2px; }
 .st-l { display: flex; gap: 10px; padding: 5px 8px; border-radius: 6px; background: #141414; font-size: 14px; }
 .st-l .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Badge nouveau */
+.case-nouveau { flex-direction: row; align-items: center; gap: 10px; margin: -6px 0 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--win); color: var(--fg); font-size: 15px; cursor: pointer; }
+.case-nouveau input { width: 20px; height: 20px; accent-color: var(--accent); }
+.case-nouveau small { color: var(--muted); }
+.noeud .n.est-nouveau::before { content: "nouveau · "; color: var(--accent); }
+.noeud[aria-current="true"] .n.est-nouveau::before { color: #4b3ccf; }

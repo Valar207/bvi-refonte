@@ -53,6 +53,7 @@ const prepContact = (c) => ({
 
 /* Textes de l'interface */
 const UI = {
+  nouveau: T("nouveau", "new", "nuovo"),
   minimize: T("Réduire", "Minimize", "Riduci"),
   fullscreen: T("Plein écran", "Fullscreen", "Schermo intero"),
   close: T("Fermer", "Close", "Chiudi"),

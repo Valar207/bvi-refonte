@@ -148,6 +148,12 @@
   /* ---------- Bureau ---------- */
   const desktop = $("#desktop");
   setA(desktop, "aria-label", UI.desktop);
+  // Badge « nouveau » (case cochée dans l'administration) ; un petit point sur les dossiers qui en contiennent un
+  const aDuNouveau = (n) => !!(n.children || []).some((c) => c.nouveau || aDuNouveau(c));
+  function badgeNouveau(f, n) {
+    if (n.nouveau) f.append(setT(el("span", "badge-nouveau"), UI.nouveau));
+    else if (aDuNouveau(n)) { const p = el("span", "point-nouveau"); setA(p, "title", tr(UI.nouveau)); f.append(p); }
+  }
   const makeIcon = (node, icon) => {
     const f = el("div", "folder folder-item");
     f.tabIndex = 0;
@@ -156,6 +162,7 @@
     im.src = A + icon;
     im.alt = "";
     f.append(im, setT(el("h2"), node.name));
+    badgeNouveau(f, node);
     const open = () => {
       document.querySelectorAll(".folder.selected").forEach((x) => x.classList.remove("selected"));
       f.classList.add("selected");
@@ -350,6 +357,7 @@
       im.src = A + "dossier.png";
       im.alt = "";
       f.append(im, setT(el("h2"), child.name));
+      badgeNouveau(f, child);
       f.addEventListener("click", () => openWindow(child, im));
       left.append(f);
     });

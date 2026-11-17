@@ -96,7 +96,8 @@ function video_ok($v) {
 }
 function dossier_ok($n, $prof, &$compte) {
     if (!is_array($n) || $prof > 8 || ++$compte > 5000) return false;
-    foreach ($n as $k => $_) if (!in_array($k, ['name', 'desc', 'children', 'items'], true)) return false;
+    foreach ($n as $k => $_) if (!in_array($k, ['name', 'desc', 'children', 'items', 'nouveau'], true)) return false;
+    if (isset($n['nouveau']) && $n['nouveau'] !== true) return false;
     if (!texte_ok($n['name'] ?? null, 160) || trim($n['name']) === '') return false;
     if (isset($n['desc']) && !trad_ok($n['desc'])) return false;
     if (isset($n['children'])) {
