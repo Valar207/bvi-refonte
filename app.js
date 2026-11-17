@@ -306,7 +306,6 @@
     const state = { el: win, tab, node, min: false };
     wins.set(node.id, state);
     mesurer("p", node.chemin);
-    son("ouvre");
     focusWin(node.id);
 
     if (node.isContact) renderContact(content, true);
@@ -458,7 +457,6 @@
     if (!w || w.min) return;
     w.min = true;
     majURL();
-    son("reduit");
     w.tab.classList.remove("activeFF");
     w.tab.classList.add("minim");
     setTimeout(() => {
@@ -481,7 +479,6 @@
     if (!w) return;
     wins.delete(id);
     majURL();
-    son("ferme");
     w.tab.classList.add("out");
     setTimeout(() => w.tab.remove(), reduced ? 0 : 300);
     const done = () => w.el.remove();
@@ -761,13 +758,26 @@
     b.dataset.lang = l.code;
     b.textContent = l.label;
     b.setAttribute("lang", l.code);
-    b.addEventListener("click", () => {
+    b.addEventListener("click", (e) => {
+      // téléphone : toucher la langue affichée ouvre (ou ferme) la liste des autres, au-dessus
+      if (matchMedia("(max-width: 768px)").matches) {
+        e.stopPropagation();
+        if (l.code === lang || !langBox.classList.contains("ouvert")) { ouvrirLangues(!langBox.classList.contains("ouvert")); return; }
+        ouvrirLangues(false);
+      }
       if (l.code === lang) return;
       applyLang(l.code, true);
       if (!reduced) b.animate([{ transform: "scale(0.8)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], { duration: 350, easing: "ease-out" });
     });
     langBox.append(b);
   });
+
+  function ouvrirLangues(oui) {
+    langBox.classList.toggle("ouvert", oui);
+    let k = 0;
+    langBox.querySelectorAll(".lang-btn").forEach((b) => { if (b.dataset.lang !== lang) b.style.setProperty("--rang", k++); });
+  }
+  addEventListener("pointerdown", (e) => { if (langBox.classList.contains("ouvert") && !langBox.contains(e.target)) ouvrirLangues(false); });
 
   const clock = $("#clock");
   const tickClock = () => {
@@ -1048,54 +1058,6 @@
   }
 
   /* =====================================================================
-     Sons système rétro (coupés par défaut, haut-parleur dans la barre des tâches)
-     Synthétisés avec Web Audio : aucun fichier à charger.
-     ===================================================================== */
-  var audio = null, sonsOn = false;
-  try { sonsOn = localStorage.getItem("bvi-son") === "1"; } catch (_) {}
-  function bip(f1, f2, duree, type = "square", vol = 0.06, delai = 0) {
-    if (!audio) return;
-    const t0 = audio.currentTime + delai, o = audio.createOscillator(), g = audio.createGain();
-    o.type = type; o.frequency.setValueAtTime(f1, t0); o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t0 + duree);
-    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + duree);
-    o.connect(g).connect(audio.destination); o.start(t0); o.stop(t0 + duree + 0.02);
-  }
-  function son(nom) {
-    if (!sonsOn || !audio) return;
-    if (audio.state === "suspended") audio.resume();
-    const S = {
-      ouvre: () => { bip(330, 660, 0.09); bip(660, 990, 0.08, "square", 0.05, 0.07); },
-      ferme: () => { bip(660, 220, 0.12); },
-      reduit: () => { bip(520, 260, 0.1, "triangle", 0.08); },
-      clic: () => { bip(1200, 900, 0.025, "square", 0.04); },
-      demarrage: () => { [523, 659, 784, 1047].forEach((f, i) => bip(f, f, 0.16, "triangle", 0.07, i * 0.11)); },
-      mange: () => { bip(880, 1320, 0.06, "square", 0.05); },
-      boum: () => { bip(200, 40, 0.5, "sawtooth", 0.09); bip(120, 30, 0.6, "square", 0.06, 0.05); },
-      gagne: () => { [659, 784, 988, 1319].forEach((f, i) => bip(f, f, 0.12, "square", 0.05, i * 0.1)); },
-      drapeau: () => { bip(1500, 1500, 0.03, "square", 0.04); },
-    };
-    (S[nom] || (() => {}))();
-  }
-  const hp = el("button", "hp-btn");
-  const dessinHP = () => {
-    hp.innerHTML = `<svg viewBox="0 0 16 16" width="20" height="20" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 6h3l4-3h1v10H9L5 10H2z"/>${sonsOn ? '<path fill="currentColor" d="M12 5h1v1h-1zM13 6h1v4h-1zM12 10h1v1h-1z"/>' : '<path fill="currentColor" d="M11 6h1v1h-1zM14 6h1v1h-1zM12 7h2v2h-2zM11 9h1v1h-1zM14 9h1v1h-1z"/>'}</svg>`;
-    setA(hp, "aria-label", sonsOn ? UI.sonsOn : UI.sonsOff); setA(hp, "title", sonsOn ? UI.sonsOn : UI.sonsOff);
-    hp.classList.toggle("activeFF", sonsOn);
-  };
-  function basculerSons() {
-    sonsOn = !sonsOn;
-    try { localStorage.setItem("bvi-son", sonsOn ? "1" : "0"); } catch (_) {}
-    if (sonsOn && !audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { sonsOn = false; } }
-    dessinHP(); son("demarrage");
-  }
-  hp.addEventListener("click", basculerSons);
-  $("#langs").before(hp, el("div", "line"));
-  dessinHP();
-  // le navigateur n'autorise le son qu'après un geste : on prépare l'audio au premier clic si les sons sont activés
-  addEventListener("pointerdown", () => { if (sonsOn && !audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {} } }, { once: true, capture: true });
-  desktop.addEventListener("click", (e) => { if (e.target.closest(".folder")) son("clic"); });
-
-  /* =====================================================================
      Icônes déplaçables sur le bureau (souris), positions mémorisées
      ===================================================================== */
   const CLE_ICONES = "bvi-icones";
@@ -1151,8 +1113,7 @@
       const snap = (v) => Math.round(v / 8) * 8;
       g.f.style.left = snap(parseFloat(g.f.style.left)) + "px"; g.f.style.top = snap(parseFloat(g.f.style.top)) + "px";
       [...desktop.children].forEach((f) => { positions[idIcone(f)] = [parseFloat(f.style.left) / desktop.clientWidth, parseFloat(f.style.top) / desktop.clientHeight]; });
-      try { localStorage.setItem(CLE_ICONES, JSON.stringify(positions)); } catch (_) {}
-      son("clic");
+      try { localStorage.setItem(CLE_ICONES, JSON.stringify(positions)); } catch (_) {};
       // le clic qui suit un glisser ne doit pas ouvrir le dossier
       const bloque = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
       g.f.addEventListener("click", bloque, { capture: true, once: true });
@@ -1179,7 +1140,7 @@
     const item = (txt, action, coche) => {
       const b = el("button", "ctx-i" + (coche ? " coche" : ""));
       setA(b, "role", "menuitem"); b.textContent = tr(txt);
-      b.addEventListener("click", (e) => { e.stopPropagation(); fermerMenu(); son("clic"); action(); });
+      b.addEventListener("click", (e) => { e.stopPropagation(); fermerMenu(); action(); });
       menu.append(b);
     };
     const sep = () => menu.append(el("hr"));
@@ -1192,10 +1153,9 @@
       if (r.bottom > bas) menu.style.top = Math.max(4, r.top - (r.bottom - bas)) + "px";
     });
     const liste = el("div", "ctx-liste");
-    FONDS.forEach((f) => { const b = el("button", "ctx-i" + (f === fond ? " coche" : "")); b.textContent = tr(UI.fonds[f]); b.addEventListener("click", (e) => { e.stopPropagation(); fond = f; try { localStorage.setItem("bvi-fond", f); } catch (_) {} appliquerFond(); fermerMenu(); son("clic"); }); liste.append(b); });
+    FONDS.forEach((f) => { const b = el("button", "ctx-i" + (f === fond ? " coche" : "")); b.textContent = tr(UI.fonds[f]); b.addEventListener("click", (e) => { e.stopPropagation(); fond = f; try { localStorage.setItem("bvi-fond", f); } catch (_) {} appliquerFond(); fermerMenu(); }); liste.append(b); });
     sous.append(liste); menu.append(sous);
     if (matchMedia("(pointer: fine)").matches) item(UI.ranger, ranger);
-    item(sonsOn ? UI.sonsOn : UI.sonsOff, basculerSons, sonsOn);
     sep();
     item(UI.apropos, aPropos);
     document.body.append(menu);
@@ -1243,9 +1203,8 @@
     UI.aproposTexte.forEach((t, i) => { const p = el("p"); p.textContent = tr(t); if (i === 0) p.className = "gros"; corps.append(p); });
     const ok = el("button", "apropos-ok"); ok.textContent = "OK"; corps.append(ok);
     v.append(barre, corps); document.body.append(v);
-    const fermer = () => { v.remove(); son("ferme"); };
-    x.addEventListener("click", fermer); ok.addEventListener("click", fermer);
-    son("ouvre"); ok.focus();
+    const fermer = () => { v.remove(); };
+    x.addEventListener("click", fermer); ok.addEventListener("click", fermer); ok.focus();
   }
 
   /* =====================================================================
@@ -1266,7 +1225,7 @@
     const choix = el("div", "mines-niveaux");
     Object.keys(NIVEAUX).forEach((k) => {
       const b = setT(el("button", "mines-niv"), UI.niveaux[k]); b.dataset.niv = k;
-      b.addEventListener("click", () => { niveau = k; try { localStorage.setItem("bvi-mines", k); } catch (_) {} son("clic"); nouvelle(); });
+      b.addEventListener("click", () => { niveau = k; try { localStorage.setItem("bvi-mines", k); } catch (_) {}; nouvelle(); });
       choix.append(b);
     });
     zone.append(choix);
@@ -1316,7 +1275,7 @@
       if (fini || c.vu) return;
       c.drap = !c.drap; drapeaux += c.drap ? 1 : -1;
       c.b.textContent = c.drap ? "⚑" : ""; c.b.classList.toggle("drap", c.drap);
-      cpt.textContent = fmt(NB - drapeaux); son("drapeau");
+      cpt.textContent = fmt(NB - drapeaux);
     }
     // Clic sur un chiffre déjà découvert : s'il reste juste autant de cases cachées que sa valeur, on y pose les drapeaux ;
     // si le bon nombre de drapeaux l'entoure déjà, on découvre toutes les autres cases autour
@@ -1331,8 +1290,7 @@
       if (!aOuvrir.length) return;
       const mine = aOuvrir.find((x) => x.mine);
       if (mine) { perdu(mine); return; }
-      aOuvrir.forEach((x) => ouvrir(x));
-      son("clic"); verifier();
+      aOuvrir.forEach((x) => ouvrir(x)); verifier();
     }
     function ouvrir(c) {
       const pile = [c];
@@ -1343,22 +1301,21 @@
       }
     }
     function verifier() {
-      if (cases.every((x) => x.mine || x.vu)) { fini = true; clearInterval(timer); face.textContent = "B6 ✓"; face.classList.add("gagne"); cases.forEach((x) => { if (x.mine) { x.b.textContent = "⚑"; x.b.classList.add("drap"); } }); cpt.textContent = "000"; son("gagne"); }
+      if (cases.every((x) => x.mine || x.vu)) { fini = true; clearInterval(timer); face.textContent = "B6 ✓"; face.classList.add("gagne"); cases.forEach((x) => { if (x.mine) { x.b.textContent = "⚑"; x.b.classList.add("drap"); } }); cpt.textContent = "000"; }
     }
     function decouvrir(c) {
       if (fini || c.drap) return;
       if (c.vu) { accord(c); return; }
       if (premier) { premier = false; poser(c); t0 = Date.now(); timer = setInterval(() => { if (!content.isConnected) clearInterval(timer); else chrono.textContent = fmt(Math.floor((Date.now() - t0) / 1000)); }, 500); }
       if (c.mine) { perdu(c); return; }
-      ouvrir(c);
-      son("clic"); verifier();
+      ouvrir(c); verifier();
     }
     function perdu(c) {
       fini = true; clearInterval(timer); face.textContent = "x_x"; face.classList.add("perdu");
       cases.forEach((x) => { if (x.mine) { x.b.textContent = "✸"; x.b.classList.add("mine"); } else if (x.drap) x.b.classList.add("faux"); });
-      c.b.classList.add("boum"); son("boum");
+      c.b.classList.add("boum");
     }
-    face.addEventListener("click", () => { son("clic"); nouvelle(); });
+    face.addEventListener("click", () => {; nouvelle(); });
     setA(face, "aria-label", tr(UI.rejouer));
     nouvelle();
   }
@@ -1407,12 +1364,12 @@
       // les murs ne tuent pas : on ressort de l'autre côté ; seul le corps du serpent est mortel
       const t = [(serpent[0][0] + dir[0] + COL) % COL, (serpent[0][1] + dir[1] + LIG) % LIG];
       if (serpent.slice(0, -1).some(([x, y]) => x === t[0] && y === t[1])) {
-        mort = true; enJeu = false; son("boum");
+        mort = true; enJeu = false;
         if (pts > best) { best = pts; try { localStorage.setItem("bvi-snake", best); } catch (_) {} }
         majInfo(); return;
       }
       serpent.unshift(t);
-      if (t[0] === pomme[0] && t[1] === pomme[1]) { pts++; vitesse = Math.max(60, vitesse - 4); placerPomme(); son("mange"); majInfo(); }
+      if (t[0] === pomme[0] && t[1] === pomme[1]) { pts++; vitesse = Math.max(60, vitesse - 4); placerPomme(); majInfo(); }
       else serpent.pop();
     }
     function boucle(now) {

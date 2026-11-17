@@ -59,8 +59,6 @@ const UI = {
   fondEcran: T("Fond d'écran", "Wallpaper", "Sfondo"),
   fonds: { anime: T("Couleurs qui changent", "Shifting colours", "Colori che cambiano"), noir: T("Noir", "Black", "Nero"), damier: T("Damier", "Checkerboard", "Scacchiera"), points: T("Grille de points", "Dot grid", "Griglia di punti") },
   ranger: T("Ranger les icônes", "Tidy up icons", "Riordina le icone"),
-  sonsOn: T("Sons : activés", "Sounds: on", "Suoni: attivi"),
-  sonsOff: T("Sons : coupés", "Sounds: off", "Suoni: disattivati"),
   apropos: T("À propos de B6", "About B6", "Informazioni su B6"),
   aproposTexte: [
     T("B-VI · système 6.0", "B-VI · system 6.0", "B-VI · sistema 6.0"),

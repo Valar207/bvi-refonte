@@ -46,7 +46,7 @@ try {
         . "\n    <meta property=\"og:title\" content=\"" . h($titre) . "\" />"
         . "\n    <meta property=\"og:description\" content=\"" . h($court) . "\" />"
         . "\n    <meta property=\"og:url\" content=\"" . h($canon) . "\" />"
-        . ($img ? "\n    <meta property=\"og:image\" content=\"" . h(img_url($img)) . "\" />\n    <meta name=\"twitter:image\" content=\"" . h(img_url($img)) . "\" />" : '')
+        . ($img ? "\n    <meta property=\"og:image\" content=\"" . h(img_url($img)) . "\" />\n    <meta property=\"og:image:secure_url\" content=\"" . h(img_url($img)) . "\" />" . dims_image($img) . "\n    <meta name=\"twitter:image\" content=\"" . h(img_url($img)) . "\" />" : '')
         . "\n    <meta name=\"twitter:card\" content=\"summary_large_image\" />"
         . "\n    <meta name=\"twitter:title\" content=\"" . h($titre) . "\" />"
         . "\n    <meta name=\"twitter:description\" content=\"" . h($court) . "\" />";

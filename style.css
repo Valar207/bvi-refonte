@@ -277,7 +277,8 @@ h4 { padding: 8px; color: white; font-size: 12px; line-height: 20px; font-weight
 /* liens dans les légendes de la visionneuse (cadre blanc) : couleur du texte, soulignés */
 .description_img a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .description_img a::after { display: none; }
-.imgPlusTitle h2 { font-size: 18px; line-height: 22px; color: var(--bg); }
+.imgPlusTitle h2 { font-size: 18px; line-height: 22px; transition: color 0.2s; }
+.imgPlusTitle:hover h2 { color: var(--bg); }   /* couleur d'accent seulement au survol (demande de Lucas) */
 
 .foldersInW {
   cursor: pointer; margin: 1rem; width: 145px; text-align: center;
@@ -405,6 +406,14 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
 
 /* ---------- Langues ---------- */
 .langs { display: flex; gap: 3px; flex-shrink: 0; }
+/* Téléphone : seule la langue choisie est visible ; un toucher fait sortir les autres au-dessus (demande de Lucas) */
+@media (max-width: 768px) {
+  .langs { position: relative; }
+  .langs .lang-btn:not(.activeFF) { display: none; }
+  .langs.ouvert .lang-btn:not(.activeFF) { display: block; position: absolute; left: 0; right: 0; bottom: calc(100% + 10px + var(--rang) * 40px); height: 34px; background: black; z-index: 30; box-shadow: 3px 3px 0 rgba(0,0,0,.5); }
+  .langs .lang-btn.activeFF::after { content: "▴"; display: inline-block; margin-left: 4px; font-size: 10px; transition: transform .2s; }
+  .langs.ouvert .lang-btn.activeFF::after { transform: rotate(180deg); }
+}
 .lang-btn { font-family: inherit; font-size: 16px; animation: none; }
 .lang-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
@@ -414,11 +423,6 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
 .saver-hint { position: absolute; left: 0; right: 0; bottom: max(40px, env(safe-area-inset-bottom)); margin: 0; padding: 0 20px; text-align: center; color: white; font-size: 18px; opacity: 0; transition: opacity .6s; pointer-events: none; }
 .saver-hint.on { opacity: .85; }
 .screensaver img { position: absolute; width: 120px; height: 120px; left: 0; top: 0; will-change: transform; transition: filter 0.3s; }
-
-/* ---------- Haut-parleur (sons système) ---------- */
-.hp-btn { background: none; border: 1px solid transparent; color: white; cursor: pointer; padding: 4px 6px; margin: 0 4px; line-height: 0; flex-shrink: 0; }
-.hp-btn:hover { border-color: white; }
-.hp-btn.activeFF { background: white; color: black; }
 
 /* ---------- Icônes déplaçables ---------- */
 .folders.libre { display: block; height: calc(100% - var(--footer-h)); }
