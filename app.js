@@ -1185,7 +1185,12 @@
     const sep = () => menu.append(el("hr"));
     item(UI.actualiser, () => { [...desktop.children].forEach((f, i) => { f.classList.remove("in", "pose"); void f.offsetWidth; f.style.setProperty("--d", i * 0.06 + "s"); f.classList.add("in"); }); });
     const sous = el("div", "ctx-sous");
-    const titre = el("div", "ctx-t"); titre.textContent = tr(UI.fondEcran) + " ▸"; sous.append(titre);
+    const titre = el("button", "ctx-t"); titre.textContent = tr(UI.fondEcran) + " ▸"; sous.append(titre);
+    titre.addEventListener("click", (e) => {   // au doigt : le sous-menu s'ouvre au toucher, et le menu remonte s'il dépasse
+      e.stopPropagation(); sous.classList.toggle("ouvert");
+      const r = menu.getBoundingClientRect(), bas = innerHeight - footerH() - 4;
+      if (r.bottom > bas) menu.style.top = Math.max(4, r.top - (r.bottom - bas)) + "px";
+    });
     const liste = el("div", "ctx-liste");
     FONDS.forEach((f) => { const b = el("button", "ctx-i" + (f === fond ? " coche" : "")); b.textContent = tr(UI.fonds[f]); b.addEventListener("click", (e) => { e.stopPropagation(); fond = f; try { localStorage.setItem("bvi-fond", f); } catch (_) {} appliquerFond(); fermerMenu(); son("clic"); }); liste.append(b); });
     sous.append(liste); menu.append(sous);
@@ -1202,9 +1207,27 @@
   // clic droit n'importe où sur le bureau (pas dans une fenêtre, la barre des tâches ou la visionneuse)
   addEventListener("contextmenu", (e) => {
     if (e.target.closest(".windows, footer, .modal-bg, .apropos, .ctx, .boom, .rick, .screensaver, a, input, textarea")) return;
-    e.preventDefault(); ouvrirMenu(e.clientX, e.clientY);
+    e.preventDefault();
+    if (!menu) ouvrirMenu(e.clientX, e.clientY);   // sur Android, l'appui long a peut-être déjà ouvert le menu
   });
   addEventListener("pointerdown", (e) => { if (menu && !menu.contains(e.target)) fermerMenu(); });
+  // Téléphone : rester appuyé sur un endroit vide du bureau ouvre le même menu (Safari iPhone n'a pas de clic droit)
+  let appuiLong = null;
+  const zoneVide = (t) => !t.closest(".folder, .windows, footer, .modal-bg, .apropos, .ctx, .boom, .rick, .screensaver, .admin-icon, a, button, input, textarea");
+  addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || !zoneVide(e.target)) return;
+    const t = e.touches[0], x = t.clientX, y = t.clientY;
+    clearTimeout(appuiLong && appuiLong.id);
+    appuiLong = { x, y, id: setTimeout(() => {
+      appuiLong = null; ouvrirMenu(x + 8, y + 8); if (navigator.vibrate) navigator.vibrate(12);
+      // en levant le doigt, le navigateur envoie un clic : il ne doit pas déclencher l'entrée du menu qui est dessous
+      const avale = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+      addEventListener("click", avale, { capture: true, once: true });
+      setTimeout(() => removeEventListener("click", avale, { capture: true }), 700);
+    }, 500) };
+  }, { passive: true });
+  addEventListener("touchmove", (e) => { if (appuiLong && Math.hypot(e.touches[0].clientX - appuiLong.x, e.touches[0].clientY - appuiLong.y) > 10) { clearTimeout(appuiLong.id); appuiLong = null; } }, { passive: true });
+  ["touchend", "touchcancel"].forEach((ev) => addEventListener(ev, () => { if (appuiLong) { clearTimeout(appuiLong.id); appuiLong = null; } }, { passive: true }));
   addEventListener("keydown", (e) => { if (e.key === "Escape") fermerMenu(); });
 
   function aPropos() {
