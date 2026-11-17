@@ -180,7 +180,7 @@
   };
   SITE.forEach((n) => desktop.append(makeIcon(n, "dossier.png")));
   desktop.append(makeIcon(CONTACT, "ordi.png"));
-  desktop.append(makeIcon(JEUX, "dossier.png"));
+  desktop.append(makeIcon(JEUX, "joystick.png"));
 
   // Icône « admin » en bas à droite du bureau : seulement pour Lucas connecté à l'administration.
   // L'administration pose un repère « bvi-admin » dans le navigateur ; on vérifie alors auprès du serveur que la session est vraiment ouverte.
