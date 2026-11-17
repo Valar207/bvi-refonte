@@ -1294,18 +1294,35 @@
       c.b.textContent = c.drap ? "⚑" : ""; c.b.classList.toggle("drap", c.drap);
       cpt.textContent = fmt(NB - drapeaux); son("drapeau");
     }
-    function decouvrir(c) {
-      if (fini || c.drap || c.vu) return;
-      if (premier) { premier = false; poser(c); t0 = Date.now(); timer = setInterval(() => { if (!content.isConnected) clearInterval(timer); else chrono.textContent = fmt(Math.floor((Date.now() - t0) / 1000)); }, 500); }
-      if (c.mine) { perdu(c); return; }
+    // Clic sur un chiffre déjà découvert : si le bon nombre de drapeaux l'entoure, on découvre toutes les autres cases autour
+    function accord(c) {
+      const v = voisins(c);
+      if (!c.n || v.filter((x) => x.drap).length !== c.n) return;
+      const aOuvrir = v.filter((x) => !x.drap && !x.vu);
+      if (!aOuvrir.length) return;
+      const mine = aOuvrir.find((x) => x.mine);
+      if (mine) { perdu(mine); return; }
+      aOuvrir.forEach((x) => ouvrir(x));
+      son("clic"); verifier();
+    }
+    function ouvrir(c) {
       const pile = [c];
       while (pile.length) {
         const x = pile.pop(); if (x.vu || x.drap) continue;
-        x.vu = true; x.b.classList.add("vu"); x.b.disabled = true;
+        x.vu = true; x.b.classList.add("vu");   // pas désactivée : un chiffre reste cliquable (découverte des voisins)
         if (x.n) { x.b.textContent = x.n; x.b.dataset.n = x.n; } else voisins(x).forEach((v) => !v.vu && pile.push(v));
       }
-      son("clic");
+    }
+    function verifier() {
       if (cases.every((x) => x.mine || x.vu)) { fini = true; clearInterval(timer); face.textContent = "B6 ✓"; face.classList.add("gagne"); cases.forEach((x) => { if (x.mine) { x.b.textContent = "⚑"; x.b.classList.add("drap"); } }); cpt.textContent = "000"; son("gagne"); }
+    }
+    function decouvrir(c) {
+      if (fini || c.drap) return;
+      if (c.vu) { accord(c); return; }
+      if (premier) { premier = false; poser(c); t0 = Date.now(); timer = setInterval(() => { if (!content.isConnected) clearInterval(timer); else chrono.textContent = fmt(Math.floor((Date.now() - t0) / 1000)); }, 500); }
+      if (c.mine) { perdu(c); return; }
+      ouvrir(c);
+      son("clic"); verifier();
     }
     function perdu(c) {
       fini = true; clearInterval(timer); face.textContent = "x_x"; face.classList.add("perdu");

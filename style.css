@@ -465,7 +465,8 @@ body.fond-points { background: radial-gradient(color-mix(in srgb, var(--bg) 55%,
 .mines-niv { background: none; color: white; border: 1px solid white; font: inherit; font-size: 14px; padding: 3px 9px; cursor: pointer; }
 .mines-niv:hover { background: #333; } .mines-niv.actif { background: white; color: black; }
 .m-c { width: var(--m); height: var(--m); padding: 0; border: 0; background: #e9e9e9; box-shadow: inset -3px -3px 0 #9a9a9a, inset 3px 3px 0 #fff; font: inherit; font-size: calc(var(--m) * .56); color: black; cursor: pointer; touch-action: manipulation; }
-.m-c:hover:not(:disabled) { background: color-mix(in srgb, var(--bg) 35%, white); }
+.m-c:hover:not(.vu) { background: color-mix(in srgb, var(--bg) 35%, white); }
+.m-c.vu[data-n]:hover { outline: 1px solid var(--bg); outline-offset: -1px; cursor: pointer; }
 .m-c.vu { background: #1a1a1a; box-shadow: none; color: var(--bg); cursor: default; }
 .m-c[data-n="1"] { color: #8fb8ff; } .m-c[data-n="2"] { color: #7ee08b; } .m-c[data-n="3"] { color: #ff7a7a; } .m-c[data-n="4"] { color: #c49bff; }
 .m-c.drap { color: var(--bg); background: #111; box-shadow: inset -3px -3px 0 #444, inset 3px 3px 0 #333; }
