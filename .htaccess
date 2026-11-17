@@ -1,9 +1,9 @@
-# Liens directs et aperçus de partage : / et /projet/... passent par projet.php ; plan du site dynamique
-Options -MultiViews
-DirectoryIndex projet.php index.php index.html
+# Liens directs et aperçus de partage : / et /projet/... passent par page.php ; plan du site dynamique.
+# (le script ne s'appelle pas projet.php : avec MultiViews, actif chez OVH et utile aux images sans extension, /projet/... irait directement dessus)
+DirectoryIndex page.php index.php index.html
 RewriteEngine On
-RewriteRule ^$ projet.php [L]
-RewriteRule ^projet/(.*)$ projet.php?p=$1 [L,QSA,B]
+RewriteRule ^$ page.php [L]
+RewriteRule ^projet/(.*)$ page.php?p=$1 [L,QSA,B]
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
 # Pages, scripts et styles toujours revérifiés (le site change souvent ; content.js est réécrit par l'administration)

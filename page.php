@@ -1,5 +1,5 @@
 <?php
-/* b-vi.fr — page d'accueil et liens directs vers un projet (/projet/<rubrique>/<dossier>[/<n° d'image>]).
+/* b-vi.fr (page.php) — page d'accueil et liens directs vers un projet (/projet/<rubrique>/<dossier>[/<n° d'image>]).
    Renvoie index.html, enrichi pour les aperçus de partage (WhatsApp, LinkedIn, Instagram…) et pour Google :
    titre, description et image du projet (Open Graph / Twitter), adresse canonique, et une version texte du contenu.
    Le JavaScript du site ouvre ensuite les bonnes fenêtres. En cas de souci, on renvoie index.html tel quel. */
