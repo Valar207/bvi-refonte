@@ -29,7 +29,7 @@ try {
         $desc = trim(sans_liens(fr($n['desc'] ?? '')));
         if ($desc === '') $desc = 'Lucas Bessis — Graphisme, direction artistique. Paris, France.';
         $item = ($num && !empty($n['items'][$num - 1])) ? $n['items'][$num - 1] : null;
-        $img = $item ? $item['src'] : premiere_image($n);
+        $img = ($item && !empty($item['src'])) ? $item['src'] : premiere_image($n);
         $canon = "$SITE_URL/projet/$p" . ($item ? "/$num" : '');
     } else {
         $titre = 'Lucas Bessis · B-VI — Graphisme, direction artistique';
@@ -55,7 +55,7 @@ try {
     $seo = "\n    <div class=\"seo\" aria-hidden=\"true\">";
     if ($n) {
         $seo .= "<h1>" . h($n['name']) . "</h1><p>" . h($desc) . "</p>";
-        foreach ($n['items'] ?? [] as $i => $it) $seo .= "<img src=\"" . h(img_url($it['src'])) . "\" alt=\"" . h(($it['title'] ?? $n['name']) . ' — ' . sans_liens(fr($it['desc'] ?? ''))) . "\" loading=\"lazy\" />";
+        foreach ($n['items'] ?? [] as $i => $it) if (!empty($it['src'])) $seo .= "<img src=\"" . h(img_url($it['src'])) . "\" alt=\"" . h(($it['title'] ?? $n['name']) . ' — ' . sans_liens(fr($it['desc'] ?? ''))) . "\" loading=\"lazy\" />";
         foreach ($n['children'] ?? [] as $ch) $seo .= "<a href=\"/projet/$p/" . h(slug_bvi($ch['name'])) . "\">" . h($ch['name']) . "</a> ";
     } else {
         $seo .= "<h1>Lucas Bessis — B-VI</h1><p>" . h($desc) . "</p><ul>";

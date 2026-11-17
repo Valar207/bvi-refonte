@@ -76,7 +76,9 @@ case 'envoyer':   // une image (ou un PDF) → images/<dossier>/<nom>
     if ($methode !== 'POST' || empty($_FILES['f'])) erreur('Aucun fichier reçu.');
     $f = $_FILES['f'];
     if ($f['error'] !== UPLOAD_ERR_OK) erreur($f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE ? 'Fichier trop lourd.' : 'Envoi interrompu, réessaie.');
-    if ($f['size'] > MAX_UPLOAD) erreur('Fichier trop lourd (25 Mo maximum).');
+    $debut12 = file_get_contents($f['tmp_name'], false, null, 0, 12);
+    $estVideo = substr($debut12, 4, 4) === 'ftyp' || substr($debut12, 0, 4) === "\x1A\x45\xDF\xA3";
+    if ($f['size'] > ($estVideo ? MAX_VIDEO : MAX_UPLOAD)) erreur($estVideo ? 'Vidéo trop lourde (300 Mo maximum).' : 'Fichier trop lourd (25 Mo maximum).');
     $dest = trim((string)($_POST['dossier'] ?? 'ajouts'), '/');
     $parts = array_values(array_filter(array_map('nom_propre', explode('/', $dest)), 'strlen'));
     if (!$parts) $parts = ['ajouts'];
@@ -89,7 +91,9 @@ case 'envoyer':   // une image (ou un PDF) → images/<dossier>/<nom>
         if (!$ext) erreur('Format d’image non accepté (JPG, PNG, GIF ou WebP).');
     } else {
         $debut = file_get_contents($f['tmp_name'], false, null, 0, 5);
-        if ($debut === '%PDF-') $ext = 'pdf'; else erreur('Ce fichier n’est ni une image ni un PDF.');
+        if ($debut === '%PDF-') $ext = 'pdf';
+        elseif ($estVideo) { $e = strtolower(pathinfo((string)$f['name'], PATHINFO_EXTENSION)); $ext = in_array($e, ['mp4', 'webm', 'mov'], true) ? $e : (substr($debut12, 0, 4) === "\x1A\x45\xDF\xA3" ? 'webm' : 'mp4'); }
+        else erreur('Ce fichier n’est ni une image, ni une vidéo, ni un PDF.');
     }
     $base = nom_propre(pathinfo((string)$f['name'], PATHINFO_FILENAME), 60);
     if (!is_dir("$IMAGES/$rel") && !mkdir("$IMAGES/$rel", 0755, true)) erreur('Impossible de créer le dossier sur le serveur.', 500);
@@ -113,8 +117,8 @@ case 'envoyer':   // une image (ou un PDF) → images/<dossier>/<nom>
         if (!$ok) erreur('Enregistrement de l’image impossible.', 500);
     } elseif (!move_uploaded_file($f['tmp_name'], $cible)) erreur('Enregistrement du fichier impossible.', 500);
     @chmod($cible, 0644);
-    if ($ext !== 'pdf') miniature($cible, "$IMAGES/_mini/$rel/" . preg_replace('/\.[A-Za-z0-9]{2,4}$/', '', $nom) . '.jpg');
-    repondre(['ok' => true, 'chemin' => "$rel/$nom", 'pdf' => $ext === 'pdf']);
+    if (!in_array($ext, ['pdf', 'mp4', 'webm', 'mov'], true)) miniature($cible, "$IMAGES/_mini/$rel/" . preg_replace('/\.[A-Za-z0-9]{2,4}$/', '', $nom) . '.jpg');
+    repondre(['ok' => true, 'chemin' => "$rel/$nom", 'pdf' => $ext === 'pdf', 'video' => in_array($ext, ['mp4', 'webm', 'mov'], true)]);
 
 default:
     erreur('Action inconnue.', 404);

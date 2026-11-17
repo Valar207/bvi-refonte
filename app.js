@@ -310,9 +310,17 @@
       setA(im, "alt", it.title || node.name);
       im.onload = () => th.classList.add("loaded");
       // miniature légère ; si elle n'existe pas encore, on retombe sur l'image en grand
-      im.onerror = () => { if (im.src !== it.src) im.src = it.src; else th.classList.add("loaded"); };
-      im.src = it.mini || it.src;
-      th.append(im);
+      im.onerror = () => { if (it.src && im.src !== it.src) im.src = it.src; else th.classList.add("loaded"); };
+      if (it.isVideo) {
+        th.classList.add("video");
+        if (!it.mini && !it.poster && it.fichier) {   // fichier vidéo sans image : la première image de la vidéo sert de vignette
+          const vd = el("video"); vd.muted = true; vd.preload = "metadata"; vd.playsInline = true;
+          vd.onloadeddata = () => th.classList.add("loaded"); vd.src = it.fichier + "#t=0.5";
+          th.append(vd);
+        } else im.src = it.mini || it.poster;
+        if (!it.mini && !it.poster && !it.fichier) th.classList.add("loaded");
+      } else im.src = it.mini || it.src;
+      if (!(it.isVideo && !it.mini && !it.poster)) th.append(im);
       card.append(th);
       if (it.title) card.append(setT(el("h2"), it.title));
       card.addEventListener("click", () => openLightbox(node, idx));
@@ -526,6 +534,23 @@
 
   function buildFig(it) {
     const fig = el("figure", "lb-fig");
+    if (it.isVideo) {
+      const box = el("div", "lb-video");
+      if (it.embed) {
+        const f = el("iframe");
+        f.src = it.embed; f.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; f.allowFullscreen = true;
+        f.title = it.title || "vidéo";
+        box.append(f);
+      } else if (it.fichier) {
+        const v = el("video");
+        v.src = it.fichier; v.controls = true; v.autoplay = true; v.playsInline = true;
+        if (it.poster) v.poster = it.poster;
+        box.append(v);
+      }
+      fig.append(box);
+      if (it.desc) { const cap = el("figcaption", "description_img"); avecLiens(cap, tr(it.desc)); fig.append(cap); }
+      return fig;
+    }
     const im = el("img");
     im.src = it.src;
     im.alt = tr(it.title || (lbNode && lbNode.name));
@@ -570,7 +595,7 @@
     const it = lbItems[lbIndex];
     const token = ++lbToken;
     counter.innerHTML = `<b class="tick">${lbIndex + 1}</b> / ${n}`;
-    const ready = preload(it.src);
+    const ready = it.isVideo ? Promise.resolve() : preload(it.src);
     let shownLoader = false;
     const loaderTimer = setTimeout(() => {
       if (token !== lbToken) return;
@@ -582,7 +607,7 @@
       clearTimeout(loaderTimer);
       swap(buildFig(it), shownLoader ? 0 : dir);
       // précharge les voisines
-      if (n > 1) { preload(lbItems[(lbIndex + 1) % n].src); preload(lbItems[(lbIndex - 1 + n) % n].src); }
+      if (n > 1) [lbItems[(lbIndex + 1) % n], lbItems[(lbIndex - 1 + n) % n]].forEach((x) => { if (!x.isVideo) preload(x.src); });
     });
   }
 
@@ -614,6 +639,7 @@
     lb.classList.remove("bg-active");
     lbOpen = false;
     lbToken++;
+    if (stage.querySelector(".lb-video")) stage.replaceChildren();   // coupe le son de la vidéo
     majURL();
   }
 

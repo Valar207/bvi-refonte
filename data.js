@@ -26,9 +26,26 @@ const prepDossier = (n) => {
   const o = { ...n };
   if (n.children) o.children = n.children.map(prepDossier);
   // mini : miniature légère (images/_mini/<chemin sans extension>.jpg), créée à l'envoi par l'administration
-  if (n.items) o.items = n.items.map((it) => ({ ...it, src: img(it.src), mini: img("_mini/" + it.src.replace(/\.[A-Za-z0-9]{2,4}$/, "") + ".jpg") }));
+  if (n.items) o.items = n.items.map((it) => (it.video ? prepVideo(it) : { ...it, src: img(it.src), mini: img("_mini/" + it.src.replace(/\.[A-Za-z0-9]{2,4}$/, "") + ".jpg") }));
   return o;
 };
+// Vidéo : lien YouTube ou Vimeo, ou fichier envoyé (@images/videos/x.mp4). Vignette : celle de YouTube/Vimeo, ou l'image choisie.
+function prepVideo(it) {
+  const v = it.video, o = { ...it, isVideo: true };
+  let m;
+  if ((m = v.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/))) {
+    o.embed = `https://www.youtube-nocookie.com/embed/${m[1]}?autoplay=1&rel=0&playsinline=1`;
+    o.poster = it.poster || `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg`;
+  } else if ((m = v.match(/vimeo\.com\/(?:video\/)?(\d+)/))) {
+    o.embed = `https://player.vimeo.com/video/${m[1]}?autoplay=1&dnt=1`;
+  } else if (v.startsWith("@images/")) {
+    o.fichier = img(v.slice(8));
+  }
+  if (it.src) { o.poster = img(it.src); o.mini = img("_mini/" + it.src.replace(/\.[A-Za-z0-9]{2,4}$/, "") + ".jpg"); }
+  o.src = o.poster || "";
+  return o;
+}
+
 const prepContact = (c) => ({
   ...c,
   lines: c.lines.map((l) => (l.href && l.href.startsWith("@images/") ? { ...l, href: IMG_BASE + encodeURI(l.href.slice(8)) } : { ...l })),

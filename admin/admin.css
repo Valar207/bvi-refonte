@@ -128,3 +128,9 @@ section.bloc > h2 .aide { font-family: system-ui, sans-serif; font-size: 13px; c
 .toast.err { background: var(--bad); }
 .vide { color: var(--muted); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Vidéos */
+.badge-video { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.8); border: 1px solid #fff; font-size: 12px; padding: 1px 6px; font-weight: 600; }
+.ajout-video { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.ligne-video { display: flex; gap: 6px; flex-wrap: wrap; }
+.ligne-video input { flex: 1 1 240px; }

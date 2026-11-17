@@ -45,3 +45,6 @@ En bas à droite du bureau, un cadenas « admin » mène à `/admin/`, **uniquem
 
 ## Miniatures
 Les vignettes des fenêtres chargent des miniatures légères : `images/_mini/<chemin de l'image sans extension>.jpg` (240 px de haut max, JPEG). Elles sont créées automatiquement quand Lucas envoie une photo par l'administration (`miniature()` dans `admin/lib.php`, avec GD). Si une miniature manque, le site affiche l'image en grand à la place. Les 146 miniatures des images existantes ont été générées le 2026-11-17 (34 Mo d'originaux → 1,9 Mo).
+
+## Vidéos
+Un élément d'un dossier peut être une vidéo : `{ video: "https://youtu.be/…" | "https://vimeo.com/…" | "@images/videos/…/x.mp4", title, desc, poster?, src? }`. Dans l'administration : « Ajouter la vidéo » (lien YouTube ou Vimeo ; pour Vimeo, l'image et le titre sont récupérés automatiquement) ou « Envoyer un fichier vidéo » (MP4/WebM/MOV, 300 Mo max, rangé dans `images/videos/`). Sur le site (`prepVideo()` dans data.js) : vignette avec ▶ (image YouTube/Vimeo, ou première image du fichier), lecture dans la visionneuse en 16:9 (YouTube sans cookies, Vimeo sans suivi), son coupé à la fermeture ou au passage à l'image suivante.

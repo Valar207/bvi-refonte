@@ -3,7 +3,7 @@
 header('Cache-Control: no-store');
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https://i.ytimg.com https://i.vimeocdn.com; media-src 'self' blob:; connect-src 'self' https://vimeo.com; style-src 'self'; script-src 'self'; frame-ancestors 'none'");
 $v = function ($f) { return @filemtime(__DIR__ . "/$f") ?: 1; };
 ?><!doctype html>
 <html lang="fr">

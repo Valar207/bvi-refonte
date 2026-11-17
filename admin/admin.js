@@ -236,12 +236,22 @@
     let depart = null;
     items.forEach((it, i) => {
       const v = el("div", { class: "vign", draggable: "true", title: "Glisse pour changer l'ordre" }, el("span", { text: String(i + 1) }));
-      v.style.backgroundImage = `url("${IMG("_mini/" + it.src.replace(/\.[A-Za-z0-9]{2,4}$/, "") + ".jpg")}"), url("${IMG(it.src)}")`;
+      if (it.video) {
+        const yt = it.video.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);
+        const fond = it.src ? IMG(it.src) : it.poster || (yt ? `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg` : "");
+        if (fond) v.style.backgroundImage = `url("${fond}")`;
+        v.append(el("b", { class: "badge-video", text: "▶ vidéo" }));
+      } else v.style.backgroundImage = `url("${IMG("_mini/" + it.src.replace(/\.[A-Za-z0-9]{2,4}$/, "") + ".jpg")}"), url("${IMG(it.src)}")`;
       const titre = el("input", { type: "text", value: it.title || "", placeholder: "Titre (facultatif)", maxlength: 200 });
       titre.addEventListener("input", () => { if (titre.value.trim()) it.title = titre.value; else delete it.title; change(); });
       const leg = el("details", {}, el("summary", { text: "Légende dans la visionneuse" + (it.desc ? " ✓" : "") }), champsLangues(it, "desc", { lignes: 2, liens: true }));
+      let lienVideo = null;
+      if (it.video) {
+        lienVideo = el("input", { type: "text", value: it.video.startsWith("@images/") ? "fichier envoyé : " + it.video.split("/").pop() : it.video, disabled: it.video.startsWith("@images/") || null, title: "Lien YouTube ou Vimeo" });
+        lienVideo.addEventListener("change", () => { const u = lienVideo.value.trim(); if (lienVideoOk(u)) { it.video = u; delete it.poster; change(); rendu(); } else toast("Lien non reconnu : colle un lien YouTube ou Vimeo.", true); });
+      }
       const carte = el("div", { class: "carte" }, v,
-        el("div", { class: "champs" }, titre, leg),
+        el("div", { class: "champs" }, lienVideo, titre, leg),
         el("div", { class: "actions" },
           el("button", { class: "b sm ico", type: "button", title: "Avant", disabled: i === 0, onclick: () => { deplacer(items, i, -1); change(); rendu(); } }, "←"),
           el("button", { class: "b sm ico", type: "button", title: "Après", disabled: i === items.length - 1, onclick: () => { deplacer(items, i, 1); change(); rendu(); } }, "→"),
@@ -263,8 +273,41 @@
     depot.addEventListener("dragover", (e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); depot.classList.add("survol"); } });
     depot.addEventListener("dragleave", () => depot.classList.remove("survol"));
     depot.addEventListener("drop", (e) => { e.preventDefault(); depot.classList.remove("survol"); envoyerPhotos([...e.dataTransfer.files].filter((f) => f.type.startsWith("image/")), n, ch, envois); });
-    return el("section", { class: "bloc" }, el("h2", {}, "Images", el("span", { class: "aide", text: items.length + " · glisse les vignettes ou utilise ← → pour l'ordre" })),
-      items.length ? grille : el("p", { class: "vide", text: "Aucune image dans ce dossier." }), depot);
+    return el("section", { class: "bloc" }, el("h2", {}, "Images et vidéos", el("span", { class: "aide", text: items.length + " · glisse les vignettes ou utilise ← → pour l'ordre" })),
+      items.length ? grille : el("p", { class: "vide", text: "Aucune image dans ce dossier." }), depot, blocAjoutVideo(n, ch));
+  }
+
+  /* ---------- vidéos ---------- */
+  const lienVideoOk = (u) => /^https:\/\/(www\.|m\.)?(youtube\.com\/(watch\?\S*v=|shorts\/|embed\/)[\w-]{11}|youtu\.be\/[\w-]{11}|vimeo\.com\/(video\/)?\d+|player\.vimeo\.com\/video\/\d+)\S*$/i.test(u);
+  function blocAjoutVideo(n, ch) {
+    const url = el("input", { type: "text", placeholder: "Lien YouTube ou Vimeo (https://…)", inputmode: "url", autocapitalize: "none" });
+    const fic = el("input", { type: "file", accept: "video/mp4,video/webm,video/quicktime", class: "sr", id: "fichier-video" });
+    const etat = el("span", { class: "vide" });
+    const ajouter = async () => {
+      let u = url.value.trim();
+      if (u && !/^https?:\/\//.test(u)) u = "https://" + u;
+      if (!lienVideoOk(u)) { toast("Lien non reconnu : colle un lien YouTube ou Vimeo.", true); return; }
+      const it = { video: u };
+      const vm = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+      if (vm) {   // Vimeo : on récupère l'image de la vidéo pour la vignette
+        try { const r = await fetch("https://vimeo.com/api/oembed.json?url=" + encodeURIComponent("https://vimeo.com/" + vm[1])); const d = await r.json(); if (d.thumbnail_url) it.poster = d.thumbnail_url.replace(/^http:/, "https:"); if (d.title) it.title = d.title; } catch (e) {}
+      }
+      (n.items = n.items || []).push(it); change(); rendu(); toast("Vidéo ajoutée. Pense à « Publier ».");
+    };
+    fic.addEventListener("change", async () => {
+      const f = fic.files[0]; fic.value = ""; if (!f) return;
+      etat.textContent = "⏳ envoi de " + f.name + " (" + Math.round(f.size / 1e6) + " Mo)…";
+      try {
+        const fd = new FormData(); fd.append("f", f); fd.append("dossier", "videos/" + cheminDossierTexte(ch));
+        const d = await api("envoyer", null, fd);
+        (n.items = n.items || []).push({ video: "@images/" + d.chemin, title: f.name.replace(/\.[^.]+$/, "") });
+        change(); rendu(); toast("Vidéo envoyée. Pense à « Publier ».");
+      } catch (e) { etat.textContent = "✗ " + (e.message || "échec"); }
+    });
+    return el("div", { class: "ajout-video" },
+      el("p", { class: "vide", text: "Ajouter une vidéo : colle un lien YouTube ou Vimeo, ou envoie un fichier (MP4, 300 Mo max)." }),
+      el("div", { class: "ligne-video" }, url, el("button", { class: "b sm pri", type: "button", onclick: ajouter }, "Ajouter la vidéo")),
+      el("div", {}, el("label", { for: "fichier-video", class: "b sm", tabindex: "0" }, "Envoyer un fichier vidéo"), fic, " ", etat));
   }
 
   // Réduit la photo dans le navigateur avant l'envoi (plus rapide, et convertit les photos iPhone en JPG)

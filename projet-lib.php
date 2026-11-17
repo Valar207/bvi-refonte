@@ -12,7 +12,7 @@ function sans_liens($s) { return preg_replace('/\[([^\]\n]+)\]\(((?:https?:\/\/|
 function h($s) { return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function img_url($p) { global $SITE_URL; return $SITE_URL . '/images/' . implode('/', array_map('rawurlencode', explode('/', $p))); }
 function premiere_image($n) {
-    if (!empty($n['items'][0]['src'])) return $n['items'][0]['src'];
+    foreach ($n['items'] ?? [] as $it) if (!empty($it['src'])) return $it['src'];
     foreach ($n['children'] ?? [] as $c) { $i = premiere_image($c); if ($i) return $i; }
     return null;
 }

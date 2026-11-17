@@ -8,6 +8,7 @@ if (!defined('BVI_ADMIN')) { http_response_code(403); exit; }
 date_default_timezone_set('Europe/Paris');
 
 const MAX_UPLOAD = 25 * 1024 * 1024;
+const MAX_VIDEO = 300 * 1024 * 1024;
 const MAX_VERSIONS = 60;
 const MAX_ESSAIS = 5;          // échecs de connexion avant blocage
 const BLOCAGE = 600;           // secondes
@@ -88,6 +89,11 @@ function lien_ok($u) {
     if (strpos($u, '@images/') === 0) return chemin_image_ok(substr($u, 8));
     return (bool)preg_match('~^(https?://|mailto:)[^\s"<>]+$~i', $u);
 }
+function video_ok($v) {
+    if (!is_string($v) || mb_strlen($v) > 400) return false;
+    if (strpos($v, '@images/') === 0) return chemin_image_ok(substr($v, 8)) && preg_match('/\.(mp4|webm|mov)$/i', $v);
+    return (bool)preg_match('~^https://(www\.|m\.)?(youtube\.com/(watch\?\S*v=|shorts/|embed/)[\w-]{11}|youtu\.be/[\w-]{11}|vimeo\.com/(video/)?\d+|player\.vimeo\.com/video/\d+)\S*$~i', $v);
+}
 function dossier_ok($n, $prof, &$compte) {
     if (!is_array($n) || $prof > 8 || ++$compte > 5000) return false;
     foreach ($n as $k => $_) if (!in_array($k, ['name', 'desc', 'children', 'items'], true)) return false;
@@ -101,8 +107,12 @@ function dossier_ok($n, $prof, &$compte) {
         if (!is_array($n['items'])) return false;
         foreach ($n['items'] as $it) {
             if (!is_array($it) || ++$compte > 5000) return false;
-            foreach ($it as $k => $_) if (!in_array($k, ['src', 'title', 'desc'], true)) return false;
-            if (!chemin_image_ok($it['src'] ?? null)) return false;
+            foreach ($it as $k => $_) if (!in_array($k, ['src', 'title', 'desc', 'video', 'poster'], true)) return false;
+            if (isset($it['video'])) {   // vidéo : YouTube, Vimeo ou fichier envoyé ; image facultative
+                if (!video_ok($it['video'])) return false;
+                if (isset($it['src']) && !chemin_image_ok($it['src'])) return false;
+                if (isset($it['poster']) && !(is_string($it['poster']) && preg_match('~^https://[^\s"<>]{1,500}$~', $it['poster']))) return false;
+            } elseif (!chemin_image_ok($it['src'] ?? null) || isset($it['poster'])) return false;
             if (isset($it['title']) && !texte_ok($it['title'], 200)) return false;
             if (isset($it['desc']) && !trad_ok($it['desc'])) return false;
         }
