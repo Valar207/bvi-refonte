@@ -394,6 +394,8 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
 /* ---------- Screensaver ---------- */
 .screensaver { position: fixed; inset: 0; z-index: 90000; background: rgba(0, 0, 0, 0.92); opacity: 0; transition: opacity 0.8s; pointer-events: none; }
 .screensaver.on { opacity: 1; pointer-events: auto; cursor: none; }
+.saver-hint { position: absolute; left: 0; right: 0; bottom: max(40px, env(safe-area-inset-bottom)); margin: 0; padding: 0 20px; text-align: center; color: white; font-size: 18px; opacity: 0; transition: opacity .6s; pointer-events: none; }
+.saver-hint.on { opacity: .85; }
 .screensaver img { position: absolute; width: 120px; height: 120px; left: 0; top: 0; will-change: transform; transition: filter 0.3s; }
 
 /* Easter egg « lucasbessis » : petit canvas agrandi sans lissage = vrai pixel art */

@@ -699,24 +699,88 @@
   }
   boot();
 
-  /* ---------- Économiseur d'écran (B6 qui rebondit) ---------- */
+  /* ---------- Économiseur d'écran (B6 qui rebondit) ----------
+     Ordinateur : le logo rebondit tout seul. Téléphone : il obéit à la gravité (inclinaison) et aux secousses.
+     Sur iPhone, Safari demande l'accès aux capteurs : la première touche sur l'écran de veille sert à l'autoriser. */
   const saver = $("#saver"), logo = $("img", saver);
-  let idle, sx = 80, sy = 80, svx = 2.2, svy = 1.8, hue = 0, sRaf = 0;
-  const bounce = () => {
-    const W = innerWidth - 120, H = innerHeight - 120;
-    sx += svx; sy += svy;
+  const hint = el("p", "saver-hint"); saver.append(hint);
+  let idle, sx = 80, sy = 80, svx = 2.2, svy = 1.8, hue = 0, sRaf = 0, rot = 0;
+  const tactile = matchMedia("(pointer: coarse)").matches && "DeviceMotionEvent" in window;
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const aDemander = tactile && typeof DeviceMotionEvent.requestPermission === "function";
+  let capteurs = aDemander ? "inconnu" : tactile ? "ok" : "non";   // inconnu → ok / refuse
+  let gx = 0, gy = 0, dernierCapteur = 0, last = 0;
+  const T = 120;   // taille du logo
+  const couleur = () => { hue = (hue + 67) % 360; logo.style.filter = `hue-rotate(${hue}deg) saturate(3)`; };
+
+  // iOS et Android donnent les mesures avec des signes opposés : on part d'une supposition,
+  // puis on se cale sur l'inclinaison (beta, identique partout) dès que le téléphone est assez penché
+  let signe = ios ? -1 : 1, beta = null;
+  addEventListener("deviceorientation", (e) => { if (e.beta != null) beta = e.beta; });
+  addEventListener("devicemotion", (e) => {
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x == null) return;
+    if (beta != null && Math.abs(Math.sin((beta * Math.PI) / 180)) > 0.6 && Math.abs(a.y) > 5) signe = Math.sign(a.y * Math.sin((beta * Math.PI) / 180)) || signe;
+    // gravité dans le repère de l'écran
+    let x = -signe * a.x, y = signe * a.y;
+    const ang = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
+    gx = x * Math.cos(ang) + y * Math.sin(ang);
+    gy = -x * Math.sin(ang) + y * Math.cos(ang);
+    dernierCapteur = performance.now();
+    if (capteurs !== "ok") { capteurs = "ok"; if (saver.classList.contains("on")) dire("Incline ou secoue ton téléphone", 3500); }   // les mesures arrivent : pas besoin de demander
+  });
+
+  const bounce = (now) => {
+    const W = innerWidth - T, H = innerHeight - T;
+    const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
     let hit = false;
-    if (sx <= 0 || sx >= W) { svx *= -1; sx = clamp(sx, 0, W); hit = true; }
-    if (sy <= 0 || sy >= H) { svy *= -1; sy = clamp(sy, 0, H); hit = true; }
-    if (hit) { hue = (hue + 67) % 360; logo.style.filter = `hue-rotate(${hue}deg) saturate(3)`; }
-    logo.style.transform = `translate(${sx}px, ${sy}px) rotate(${sx * 0.5}deg)`;
+    if (now - dernierCapteur < 1000) {
+      // physique : la gravité mesurée (m/s²) devient une accélération à l'écran ; secouer = grosses accélérations
+      svx = (svx + gx * 260 * dt) * 0.995; svy = (svy + gy * 260 * dt) * 0.995;
+      sx += svx * dt; sy += svy * dt;
+      if (sx < 0 || sx > W) { if (Math.abs(svx) > 120) hit = true; svx *= -0.62; sx = clamp(sx, 0, W); }
+      if (sy < 0 || sy > H) { if (Math.abs(svy) > 120) hit = true; svy *= -0.62; sy = clamp(sy, 0, H); }
+      rot += (svx / (T / 2)) * dt * 57.3;   // la boule roule
+    } else {
+      // rebond classique (ordinateur, ou capteurs indisponibles)
+      if (Math.abs(svx) > 10) { svx = Math.sign(svx) * 2.2; svy = Math.sign(svy || 1) * 1.8; }
+      sx += svx; sy += svy;
+      if (sx <= 0 || sx >= W) { svx *= -1; sx = clamp(sx, 0, W); hit = true; }
+      if (sy <= 0 || sy >= H) { svy *= -1; sy = clamp(sy, 0, H); hit = true; }
+      rot = sx * 0.5;
+    }
+    if (hit) couleur();
+    logo.style.transform = `translate(${sx}px, ${sy}px) rotate(${rot}deg)`;
     sRaf = requestAnimationFrame(bounce);
   };
-  const wake = () => {
-    if (saver.classList.contains("on")) { saver.classList.remove("on"); cancelAnimationFrame(sRaf); }
-    clearTimeout(idle);
-    if (!reduced) idle = setTimeout(() => { saver.classList.add("on"); sRaf = requestAnimationFrame(bounce); }, 90000);
+  const dire = (txt, ms) => { hint.textContent = txt; hint.classList.add("on"); clearTimeout(hint._t); if (ms) hint._t = setTimeout(() => hint.classList.remove("on"), ms); };
+  const allumer = () => {
+    saver.classList.add("on"); last = 0;
+    if (capteurs === "ok" && tactile) svx = svy = 0;
+    sRaf = requestAnimationFrame(bounce);
+    // on laisse une demi-seconde aux capteurs pour répondre avant de demander l'autorisation (iPhone)
+    setTimeout(() => {
+      if (!saver.classList.contains("on")) return;
+      if (capteurs === "inconnu" && aDemander) dire("Touche l'écran, puis incline ou secoue ton téléphone");
+      else if (capteurs === "ok") dire("Incline ou secoue ton téléphone", 3500);
+    }, 600);
   };
+  const wake = () => {
+    if (saver.classList.contains("on")) { saver.classList.remove("on"); cancelAnimationFrame(sRaf); hint.classList.remove("on"); }
+    clearTimeout(idle);
+    if (!reduced) idle = setTimeout(allumer, 90000);
+  };
+  // iPhone : tant que l'accès aux capteurs n'est pas demandé, toucher l'écran de veille sert à le demander (et ne le ferme pas)
+  ["touchstart", "pointerdown"].forEach((ev) => saver.addEventListener(ev, (e) => { if (capteurs === "inconnu" && saver.classList.contains("on")) e.stopPropagation(); }));
+  saver.addEventListener("click", (e) => {
+    if (capteurs !== "inconnu") return;
+    e.stopPropagation();
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") DeviceOrientationEvent.requestPermission().catch(() => {});
+    DeviceMotionEvent.requestPermission().then((r) => {
+      capteurs = r === "granted" ? "ok" : "refuse";
+      if (capteurs === "ok") { svx = svy = 0; dire("Incline ou secoue ton téléphone", 3500); } else hint.classList.remove("on");
+    }).catch(() => { capteurs = "refuse"; hint.classList.remove("on"); });
+  });
   ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"].forEach((ev) => addEventListener(ev, wake, { passive: true }));
   wake();
 
