@@ -1318,10 +1318,15 @@
       c.b.textContent = c.drap ? "⚑" : ""; c.b.classList.toggle("drap", c.drap);
       cpt.textContent = fmt(NB - drapeaux); son("drapeau");
     }
-    // Clic sur un chiffre déjà découvert : si le bon nombre de drapeaux l'entoure, on découvre toutes les autres cases autour
+    // Clic sur un chiffre déjà découvert : s'il reste juste autant de cases cachées que sa valeur, on y pose les drapeaux ;
+    // si le bon nombre de drapeaux l'entoure déjà, on découvre toutes les autres cases autour
     function accord(c) {
       const v = voisins(c);
-      if (!c.n || v.filter((x) => x.drap).length !== c.n) return;
+      if (!c.n) return;
+      // autant de cases encore cachées autour que la valeur du chiffre : ce sont forcément des mines → drapeaux posés d'un coup
+      const cachees = v.filter((x) => !x.vu);
+      if (cachees.length === c.n && cachees.some((x) => !x.drap)) { cachees.forEach((x) => { if (!x.drap) marquer(x); }); return; }
+      if (v.filter((x) => x.drap).length !== c.n) return;
       const aOuvrir = v.filter((x) => !x.drap && !x.vu);
       if (!aOuvrir.length) return;
       const mine = aOuvrir.find((x) => x.mine);
@@ -1399,8 +1404,9 @@
     }
     function pas() {
       dir = prochaine;
-      const t = [serpent[0][0] + dir[0], serpent[0][1] + dir[1]];
-      if (t[0] < 0 || t[1] < 0 || t[0] >= COL || t[1] >= LIG || serpent.some(([x, y]) => x === t[0] && y === t[1])) {
+      // les murs ne tuent pas : on ressort de l'autre côté ; seul le corps du serpent est mortel
+      const t = [(serpent[0][0] + dir[0] + COL) % COL, (serpent[0][1] + dir[1] + LIG) % LIG];
+      if (serpent.slice(0, -1).some(([x, y]) => x === t[0] && y === t[1])) {
         mort = true; enJeu = false; son("boum");
         if (pts > best) { best = pts; try { localStorage.setItem("bvi-snake", best); } catch (_) {} }
         majInfo(); return;
