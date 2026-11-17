@@ -57,6 +57,21 @@ case 'stats':
     for ($i = 0; $i < 12; $i++) { $m = date('Y-m', strtotime("first day of -$i month")); $d = lire_json("$dir/$m.json"); if ($d) $mois[$m] = $d; }
     repondre(['ok' => true, 'mois' => $mois, 'aujourdhui' => date('Y-m-d')]);
 
+case 'scores':   // classements des jeux (modération)
+    exiger_connexion();
+    $d = lire_json("$PRIV/data/prod/scores.json", []);
+    unset($d['_sel'], $d['_lim']);
+    if ($methode === 'POST') {
+        exiger_csrf();
+        $j = (string)($corps['jeu'] ?? ''); $p = (string)($corps['pseudo'] ?? '');
+        $h = fopen("$PRIV/data/prod/scores.json", 'c+'); flock($h, LOCK_EX);
+        $tout = json_decode(stream_get_contents($h) ?: '', true) ?: [];
+        if (isset($tout[$j])) $tout[$j] = array_values(array_filter($tout[$j], function ($x) use ($p) { return $x['p'] !== $p; }));
+        ftruncate($h, 0); rewind($h); fwrite($h, json_encode($tout, JSON_UNESCAPED_UNICODE)); fflush($h); flock($h, LOCK_UN); fclose($h);
+        unset($tout['_sel'], $tout['_lim']); $d = $tout;
+    }
+    repondre(['ok' => true, 'scores' => $d]);
+
 case 'versions':
     exiger_connexion();
     $out = [];

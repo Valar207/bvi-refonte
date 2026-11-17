@@ -176,6 +176,7 @@
         el("span", { class: "qui", text: user }),
         el("a", { class: "b sm", href: "/?v=" + Date.now(), target: "_blank", rel: "noopener" }, "Voir le site ↗"),
         el("button", { class: "b sm", type: "button", onclick: statistiques }, "Statistiques"),
+        el("button", { class: "b sm", type: "button", onclick: classements }, "Classements"),
         el("button", { class: "b sm", type: "button", onclick: versions }, "Versions"),
         el("button", { class: "b sm", type: "button", onclick: deconnexion }, "Déconnexion")),
       el("div", { class: "cadre" }, arbre(), main),
@@ -517,6 +518,29 @@
       if (!ms.length) corps.replaceChildren(el("p", { text: "Pas encore de visite enregistrée. Les statistiques commencent aujourd'hui." }));
       else dessiner();
     } catch (e) { corps.replaceChildren(el("p", { class: "msg err", text: e.message })); }
+  }
+
+  /* ---------- classements des jeux : retirer un pseudo déplacé ---------- */
+  async function classements() {
+    const corps = el("div", { class: "corps" }, el("p", { class: "vide", text: "Chargement…" }));
+    const fermer = () => voile.remove();
+    const voile = el("div", { class: "voile", onclick: (e) => { if (e.target === voile) fermer(); } },
+      el("div", { class: "modale large", role: "dialog", "aria-modal": "true", "aria-label": "Classements" },
+        el("div", { class: "barre" }, el("span", { text: "Classements des jeux" }), el("button", { type: "button", "aria-label": "Fermer", onclick: fermer }, "✕")), corps));
+    document.body.append(voile);
+    const NOMS = { "mines-facile": "Démineur · facile", "mines-moyen": "Démineur · moyen", "mines-difficile": "Démineur · difficile", "mines-extreme": "Démineur · extrême", snake: "Snake" };
+    const fmt = (j, s) => (j === "snake" ? s + " pts" : Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"));
+    const dessiner = (scores) => {
+      corps.replaceChildren(el("p", { class: "vide", text: "Les 10 premiers de chaque jeu sont visibles sur le site. « Retirer » supprime un pseudo (insulte, triche…)." }));
+      Object.keys(NOMS).forEach((j) => {
+        const l = scores[j] || [];
+        corps.append(el("h3", { text: NOMS[j] + " (" + l.length + ")" }));
+        if (!l.length) { corps.append(el("p", { class: "vide", text: "Aucun score." })); return; }
+        corps.append(el("div", { class: "st-liste" }, l.map((x, i) => el("div", { class: "st-l" }, el("span", { text: String(i + 1) }), el("span", { class: "grow", text: x.p }), el("b", { text: fmt(j, x.s) }),
+          boutonConfirme("Retirer", "Sûr ?", async () => { try { const d = await api("scores", { jeu: j, pseudo: x.p }); dessiner(d.scores); toast("« " + x.p + " » retiré du classement."); } catch (e) { toast(e.message, true); } }, true)))));
+      });
+    };
+    try { const d = await api("scores"); dessiner(d.scores); } catch (e) { corps.replaceChildren(el("p", { class: "msg err", text: e.message })); }
   }
 
   async function deconnexion() {

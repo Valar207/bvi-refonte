@@ -1210,6 +1210,56 @@
   /* =====================================================================
      Jeux : démineur et snake, aux couleurs du site
      ===================================================================== */
+  /* ---------- Classements (scores.php) : top 10 partagé ; pseudo demandé une fois, gardé dans le navigateur ---------- */
+  const PSEUDO = "bvi-pseudo";
+  const lirePseudo = () => { try { return localStorage.getItem(PSEUDO) || ""; } catch (_) { return ""; } };
+  const fmtScore = (jeu, s) => (jeu === "snake" ? String(s) : Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"));
+  function afficherClassement(jeu, boite, top, rang) {
+    boite.textContent = "";
+    const t = el("div", "cl-titre"); t.append(tr(UI.classement) + " ");
+    const moi = lirePseudo();
+    if (moi) { const ch = el("button", "cl-changer"); ch.textContent = tr(UI.changerPseudo); ch.addEventListener("click", () => demanderPseudo(boite, () => chargerClassement(jeu, boite), moi)); t.append(ch); }
+    boite.append(t);
+    if (!top || !top.length) { const p = el("p", "cl-vide"); p.textContent = tr(UI.aucunScore); boite.append(p); return; }
+    const ol = el("ol", "cl-liste");
+    top.forEach((x, i) => {
+      const li = el("li", moi && x.p.toLowerCase() === moi.toLowerCase() ? "moi" : "");
+      const n = el("span", "cl-n"); n.textContent = i + 1;
+      const p = el("span", "cl-p"); p.textContent = x.p;
+      const s = el("span", "cl-s"); s.textContent = fmtScore(jeu, x.s);
+      li.append(n, p, s); ol.append(li);
+    });
+    boite.append(ol);
+    if (rang && rang > 10) { const p = el("p", "cl-vide"); p.textContent = tr(UI.rang) + rang; boite.append(p); }
+  }
+  function chargerClassement(jeu, boite) {
+    fetch("/scores.php?jeu=" + encodeURIComponent(jeu), { cache: "no-store" }).then((r) => r.json()).then((d) => { if (d.ok) afficherClassement(jeu, boite, d.top); }).catch(() => {});
+  }
+  function demanderPseudo(boite, suite, actuel) {
+    if (boite.querySelector(".cl-form")) return;
+    const f = el("form", "cl-form");
+    const lab = el("label"); lab.textContent = tr(UI.tonPseudo);
+    const inp = el("input"); inp.maxLength = 16; inp.value = actuel || ""; inp.autocomplete = "nickname"; inp.required = true; setA(inp, "aria-label", "pseudo");
+    const ok = el("button"); ok.type = "submit"; ok.textContent = tr(UI.valider);
+    f.append(lab, inp, ok);
+    f.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const v = inp.value.trim().replace(/\s+/g, " ");
+      if (!/^[\p{L}\p{N} ._\-']{2,16}$/u.test(v)) { inp.focus(); inp.classList.add("faux"); return; }
+      try { localStorage.setItem(PSEUDO, v); } catch (_) {}
+      f.remove(); suite(v);
+    });
+    boite.prepend(f); setTimeout(() => inp.focus(), 50);
+  }
+  function envoyerScore(jeu, score, boite) {
+    const envoyer = (pseudo) => {
+      const fd = new FormData(); fd.append("jeu", jeu); fd.append("pseudo", pseudo); fd.append("score", score);
+      fetch("/scores.php", { method: "POST", body: fd }).then((r) => r.json()).then((d) => { if (d.ok) afficherClassement(jeu, boite, d.top, d.rang); }).catch(() => {});
+    };
+    const p = lirePseudo();
+    if (p) envoyer(p); else demanderPseudo(boite, envoyer);
+  }
+
   function renderJeu(node, content, win) {
     content.classList.add("jeu");
     if (node.jeu === "mines") demineur(content, win); else snake(content, win);
@@ -1229,11 +1279,12 @@
       choix.append(b);
     });
     zone.append(choix);
+    const tableau = el("div", "classement");
     const haut = el("div", "mines-haut");
     const cpt = el("span", "mines-cpt"), face = el("button", "mines-face"), chrono = el("span", "mines-cpt");
     haut.append(cpt, face, chrono);
     const grille = el("div", "mines-grille");
-    zone.append(haut, grille); content.append(zone);
+    zone.append(haut, grille, tableau); content.append(zone);
     let cases, fini, premier, drapeaux, t0, timer;
     const fmt = (n) => String(Math.max(0, Math.min(999, n))).padStart(3, "0");
     function taille() {   // la grille tient dans la fenêtre : cases de 18 à 30 px
@@ -1246,9 +1297,10 @@
       [L, C, NB] = NIVEAUX[niveau];
       if (content.clientWidth < 600 && C > L) [L, C] = [C, L];   // téléphone : la grande grille passe en hauteur
       choix.querySelectorAll("button").forEach((b) => b.classList.toggle("actif", b.dataset.niv === niveau));
-      const h = { facile: 500, moyen: 600, difficile: 720, extreme: 720 }[niveau];
+      const h = { facile: 720, moyen: 800, difficile: 900, extreme: 900 }[niveau];
       if (innerWidth > 768) { win.style.height = Math.min(h, innerHeight - footerH() - 20) + "px"; if (C > 16) win.style.width = Math.min(980, innerWidth - 20) + "px"; }
       cases = []; fini = false; premier = true; drapeaux = 0; clearInterval(timer); t0 = 0;
+      chargerClassement("mines-" + niveau, tableau);
       grille.textContent = ""; face.textContent = "B6"; face.className = "mines-face";
       cpt.textContent = fmt(NB); chrono.textContent = "000";
       for (let i = 0; i < L * C; i++) {
@@ -1301,7 +1353,7 @@
       }
     }
     function verifier() {
-      if (cases.every((x) => x.mine || x.vu)) { fini = true; clearInterval(timer); face.textContent = "B6 ✓"; face.classList.add("gagne"); cases.forEach((x) => { if (x.mine) { x.b.textContent = "⚑"; x.b.classList.add("drap"); } }); cpt.textContent = "000"; }
+      if (cases.every((x) => x.mine || x.vu)) { fini = true; clearInterval(timer); envoyerScore("mines-" + niveau, Math.max(1, Math.round((Date.now() - t0) / 1000)), tableau); face.textContent = "B6 ✓"; face.classList.add("gagne"); cases.forEach((x) => { if (x.mine) { x.b.textContent = "⚑"; x.b.classList.add("drap"); } }); cpt.textContent = "000"; }
     }
     function decouvrir(c) {
       if (fini || c.drap) return;
@@ -1321,7 +1373,7 @@
   }
 
   function snake(content, win) {
-    win.style.height = Math.min(480, innerHeight - footerH() - 20) + "px";
+    win.style.height = Math.min(700, innerHeight - footerH() - 20) + "px";
     const COL = 21, LIG = 15, P = 16;
     const zone = el("div", "snake");
     const info = el("div", "snake-info");
@@ -1331,7 +1383,9 @@
     const aide = el("p", "snake-aide"); aide.textContent = tr(UI.snakeAide);
     const pad = el("div", "snake-pad");
     [["↑", 0, -1], ["←", -1, 0], ["↓", 0, 1], ["→", 1, 0]].forEach(([t, dx, dy]) => { const b = el("button"); b.textContent = t; b.addEventListener("click", () => tourner(dx, dy)); pad.append(b); });
-    zone.append(info, cv, aide, pad); content.append(zone);
+    const tableau = el("div", "classement");
+    zone.append(info, cv, aide, pad, tableau); content.append(zone);
+    chargerClassement("snake", tableau);
     const g = cv.getContext("2d");
     const logo = new Image(); logo.src = A + "B6_round_small.png";
     let serpent, dir, prochaine, pomme, pts, enJeu, mort, dernier = 0, vitesse;
@@ -1365,6 +1419,7 @@
       const t = [(serpent[0][0] + dir[0] + COL) % COL, (serpent[0][1] + dir[1] + LIG) % LIG];
       if (serpent.slice(0, -1).some(([x, y]) => x === t[0] && y === t[1])) {
         mort = true; enJeu = false;
+        if (pts > 0) envoyerScore("snake", pts, tableau);
         if (pts > best) { best = pts; try { localStorage.setItem("bvi-snake", best); } catch (_) {} }
         majInfo(); return;
       }

@@ -65,3 +65,8 @@ Dans l'administration, chaque dossier a une case « Afficher le badge nouveau »
 - Noms des fichiers (titres sous les vignettes) en blanc, couleur d'accent **seulement au survol**.
 - Plus de sons.
 - Sur téléphone, seule la langue choisie est visible dans la barre des tâches ; la toucher fait sortir les deux autres au-dessus (`ouvrirLangues()`).
+
+## Classements des jeux
+Top 10 partagé entre tous les visiteurs, sous chaque jeu : démineur par niveau (meilleur temps), snake (meilleur score). À la première victoire (ou première partie de snake avec des points), le jeu demande un pseudo une seule fois et le garde dans le navigateur (`bvi-pseudo`, lien « changer de pseudo »). Un pseudo n'apparaît qu'une fois, avec son meilleur résultat.
+- `scores.php` : `GET ?jeu=snake|mines-facile|mines-moyen|mines-difficile|mines-extreme` (top 10), `POST jeu, pseudo, score`. Pseudo de 2 à 16 caractères (lettres, chiffres, espace, . _ - '), robots refusés, 30 envois par heure et par appareil (empreinte salée de l'IP, jamais l'IP elle-même). Données : `bvi-admin/data/prod/scores.json` (50 meilleurs gardés par jeu).
+- Modération : bouton « Classements » de l'administration, « Retirer » supprime un pseudo.
