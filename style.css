@@ -137,6 +137,8 @@ a:hover::after { transform: scaleX(1); transform-origin: left; }
   opacity: 0;
 }
 .folder.in { animation: iconIn 0.7s var(--ease-spring) both; animation-delay: var(--d, 0s); }
+/* une fois arrivée, l'icône n'a plus ni animation ni filtre : Safari (iPhone) laissait parfois la dernière floue avec un trait coloré */
+.folder.in.pose { animation: none; opacity: 1; transform: none; filter: none; }
 @keyframes iconIn {
   from { opacity: 0; transform: translateY(30px) scale(0.6) rotate(-6deg); filter: blur(6px); }
   to { opacity: 1; transform: none; filter: blur(0); }

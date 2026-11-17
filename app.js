@@ -161,6 +161,7 @@
   }
   const makeIcon = (node, icon) => {
     const f = el("div", "folder folder-item");
+    f.addEventListener("animationend", (e) => { if (e.animationName === "iconIn") f.classList.add("pose"); });
     f.tabIndex = 0;
     f.setAttribute("role", "button");
     const im = el("img");
@@ -1182,7 +1183,7 @@
       menu.append(b);
     };
     const sep = () => menu.append(el("hr"));
-    item(UI.actualiser, () => { [...desktop.children].forEach((f, i) => { f.classList.remove("in"); void f.offsetWidth; f.style.setProperty("--d", i * 0.06 + "s"); f.classList.add("in"); }); });
+    item(UI.actualiser, () => { [...desktop.children].forEach((f, i) => { f.classList.remove("in", "pose"); void f.offsetWidth; f.style.setProperty("--d", i * 0.06 + "s"); f.classList.add("in"); }); });
     const sous = el("div", "ctx-sous");
     const titre = el("div", "ctx-t"); titre.textContent = tr(UI.fondEcran) + " ▸"; sous.append(titre);
     const liste = el("div", "ctx-liste");
