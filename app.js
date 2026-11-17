@@ -117,15 +117,31 @@
   function mesurer(e, c) {
     try {
       if (localStorage.getItem("bvi-admin") || !navigator.sendBeacon) return;
-      const cle = e + ":" + (c || "");
+      const cle = e === "d" ? "d" : e + ":" + (c || "");
       if (vus.has(cle) || sessionStorage.getItem("bvi-m-" + cle)) return;
       vus.add(cle); sessionStorage.setItem("bvi-m-" + cle, "1");
       const fd = new FormData(); fd.append("e", e);
       if (c) fd.append("c", c);
-      if (e === "v") { let s = ""; try { s = document.referrer ? new URL(document.referrer).hostname : ""; } catch (_) {} fd.append("s", s); }
+      if (e === "v") {
+        // rien de personnel : d'où l'on vient, fuseau horaire et langue du navigateur, largeur d'écran, page d'arrivée
+        let s = ""; try { s = document.referrer ? new URL(document.referrer).hostname : ""; } catch (_) {}
+        fd.append("s", s);
+        try { fd.append("u", new URLSearchParams(location.search).get("utm_source") || ""); } catch (_) {}
+        try { fd.append("z", Intl.DateTimeFormat().resolvedOptions().timeZone || ""); } catch (_) {}
+        fd.append("g", navigator.language || "");
+        fd.append("w", String(Math.round(screen.width || innerWidth)));
+        fd.append("t", navigator.maxTouchPoints > 1 ? "1" : "0");
+        fd.append("a", decodeURIComponent(location.pathname).replace(/^\/projet\/?/, "").replace(/^\/$/, "").replace(/\/\d+$/, ""));
+      }
+      if (e === "d" && c) fd.append("n", c);
       navigator.sendBeacon("/stats.php", fd);
     } catch (_) {}
   }
+
+  const debutVisite = Date.now();
+  const finVisite = () => { if (document.visibilityState === "hidden") mesurer("d", String(Math.round((Date.now() - debutVisite) / 1000))); };
+  addEventListener("visibilitychange", finVisite);
+  addEventListener("pagehide", () => mesurer("d", String(Math.round((Date.now() - debutVisite) / 1000))));
 
   // L'adresse suit ce qui est ouvert : fenêtre au premier plan (+ numéro de l'image dans la visionneuse)
   let urlPrete = false;
@@ -625,6 +641,7 @@
     const n = lbItems.length;
     lbIndex = (i + n) % n;
     majURL();
+    if (lbNode && lbNode.chemin) mesurer("i", lbNode.chemin + "/" + (lbIndex + 1));
     const it = lbItems[lbIndex];
     const token = ++lbToken;
     counter.innerHTML = `<b class="tick">${lbIndex + 1}</b> / ${n}`;
@@ -767,6 +784,7 @@
       }
       if (l.code === lang) return;
       applyLang(l.code, true);
+      mesurer("l", l.code);
       if (!reduced) b.animate([{ transform: "scale(0.8)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], { duration: 350, easing: "ease-out" });
     });
     langBox.append(b);

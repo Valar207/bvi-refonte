@@ -154,3 +154,17 @@ section.bloc > h2 .aide { font-family: system-ui, sans-serif; font-size: 13px; c
 .case-nouveau small { color: var(--muted); }
 .noeud .n.est-nouveau::before { content: "nouveau · "; color: var(--accent); }
 .noeud[aria-current="true"] .n.est-nouveau::before { color: #4b3ccf; }
+
+/* Statistiques détaillées */
+.st-chiffres { display: flex; gap: 22px; flex-wrap: wrap; align-items: baseline; }
+.st-carte { background: #141414; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.st-carte.large { margin: 4px 0; }
+.st-carte h3 { margin: 0 0 8px; }
+.st-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.st-l { position: relative; background: transparent; overflow: hidden; }
+.st-l::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--p, 0%); background: color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 6px; z-index: 0; }
+.st-l > * { position: relative; z-index: 1; }
+.st-pct { width: 4ch; text-align: right; color: var(--muted); font-size: 12px; }
+.st-barres.petit { height: 80px; }
+.st-axe { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.modale.large { width: min(980px, 100%); }

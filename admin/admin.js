@@ -492,7 +492,7 @@
       const ms = Object.keys(d.mois).sort().reverse();
       let periode = "30";
       const dessiner = () => {
-        const tous = {}; const jours = {};
+        const jours = {};
         ms.forEach((m) => { Object.entries(d.mois[m].jours || {}).forEach(([j, n]) => (jours[j] = n)); });
         const fin = new Date(d.aujourdhui + "T12:00:00"), nbj = periode === "30" ? 30 : 365;
         const debut = new Date(fin); debut.setDate(fin.getDate() - nbj + 1);
@@ -500,20 +500,52 @@
         const garde = (m) => periode === "an" || m >= dj(debut).slice(0, 7);
         const somme = (k) => { const o = {}; ms.filter(garde).forEach((m) => Object.entries(d.mois[m][k] || {}).forEach(([x, n]) => (o[x] = (o[x] || 0) + n))); return o; };
         const serie = []; for (let i = 0; i < nbj; i++) { const x = new Date(debut); x.setDate(debut.getDate() + i); serie.push([dj(x), jours[dj(x)] || 0]); }
-        const total = serie.reduce((s, [, n]) => s + n, 0), max = Math.max(1, ...serie.map(([, n]) => n));
+        const total = serie.reduce((s, [, n]) => s + n, 0);
         const noms = nomsDesChemins();
-        const top = (o, nb, nom) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, nb).map(([k, n]) => el("div", { class: "st-l" }, el("span", { class: "grow", text: nom ? nom(k) : k }), el("b", { text: String(n) })));
-        const barres = el("div", { class: "st-barres", role: "img", "aria-label": "Visites par jour" }, serie.map(([j, n]) => { const b = el("div", { class: "st-b", title: j.split("-").reverse().join("/") + " : " + n + " visite(s)" }); b.style.height = Math.round((n / max) * 100) + "%"; return b; }));
-        const app = somme("appareils");
+        const nomPays = (() => { try { const dn = new Intl.DisplayNames(["fr"], { type: "region" }); return (c) => (c === "??" ? "inconnu" : String.fromCodePoint(...[...c].map((x) => 127397 + x.charCodeAt(0))) + " " + (dn.of(c) || c)); } catch (_) { return (c) => c; } })();
+        const nomLangue = (() => { try { const dn = new Intl.DisplayNames(["fr"], { type: "language" }); return (c) => (c === "??" ? "inconnue" : dn.of(c) || c); } catch (_) { return (c) => c; } })();
+        const pct = (n, tot) => (tot ? Math.round((n / tot) * 100) + " %" : "");
+        // liste triée avec barre de proportion
+        const liste = (titre, o, { nb = 8, nom = (k) => k, ordre = null } = {}) => {
+          let e = Object.entries(o); const tot = e.reduce((s, [, n]) => s + n, 0);
+          e = ordre ? ordre.filter((k) => o[k]).map((k) => [k, o[k]]) : e.sort((a, b) => b[1] - a[1]).slice(0, nb);
+          return el("section", { class: "st-carte" }, el("h3", { text: titre }),
+            e.length ? el("div", { class: "st-liste" }, e.map(([k, n]) => { const l = el("div", { class: "st-l" }, el("span", { class: "grow", text: nom(k) }), el("b", { text: String(n) }), el("span", { class: "st-pct", text: pct(n, tot) })); l.style.setProperty("--p", tot ? (n / tot) * 100 + "%" : "0%"); return l; }))
+              : el("p", { class: "vide", text: "Pas encore de données." }));
+        };
+        const barres = (vals, etiquettes, titre, aria) => { const max = Math.max(1, ...vals); return el("section", { class: "st-carte" }, el("h3", { text: titre }), el("div", { class: "st-barres petit", role: "img", "aria-label": aria }, vals.map((n, i) => { const b = el("div", { class: "st-b", title: etiquettes[i] + " : " + n }); b.style.height = Math.round((n / max) * 100) + "%"; return b; })), el("div", { class: "st-axe" }, etiquettes.filter((_, i) => i % Math.ceil(etiquettes.length / 8) === 0).map((x) => el("span", { text: x })))); };
+        const maxJ = Math.max(1, ...serie.map(([, n]) => n));
+        const barresJours = el("div", { class: "st-barres", role: "img", "aria-label": "Visites par jour" }, serie.map(([j, n]) => { const b = el("div", { class: "st-b", title: j.split("-").reverse().join("/") + " : " + n + " visite(s)" }); b.style.height = Math.round((n / maxJ) * 100) + "%"; return b; }));
+        const dt = somme("duree_totale"), moy = dt.visites ? Math.round(dt.secondes / dt.visites) : 0;
+        const h = somme("heures"), sem = somme("semaine");
+        const nomImage = (k) => { const m = k.match(/^(.*)\/(\d+)$/); return m ? (noms[m[1]] || m[1]) + " · image " + m[2] : k; };
+        const DUREES = ["moins de 10 s", "10 à 30 s", "30 s à 1 min", "1 à 3 min", "3 à 10 min", "plus de 10 min"];
+        const ECRANS = ["moins de 400 px", "400 à 767 px", "768 à 1279 px", "1280 à 1919 px", "1920 px et plus", "??"];
         corps.replaceChildren(
           el("div", { class: "st-tete" },
-            el("div", {}, el("b", { class: "st-gros", text: String(total) }), " visites ", el("span", { class: "vide", text: periode === "30" ? "sur 30 jours" : "sur 12 mois" })),
+            el("div", { class: "st-chiffres" },
+              el("div", {}, el("b", { class: "st-gros", text: String(total) }), " visites"),
+              el("div", {}, el("b", { class: "st-gros", text: Object.values(somme("projets")).reduce((s, n) => s + n, 0) + "" }), " dossiers ouverts"),
+              el("div", {}, el("b", { class: "st-gros", text: moy ? (moy >= 60 ? Math.floor(moy / 60) + " min " + (moy % 60) + " s" : moy + " s") : "–" }), " par visite en moyenne")),
             el("div", { class: "st-choix" }, [["30", "30 jours"], ["an", "12 mois"]].map(([v, t]) => el("button", { class: "b sm" + (v === periode ? " pri" : ""), type: "button", onclick: () => { periode = v; dessiner(); } }, t)))),
-          barres,
-          el("p", { class: "vide", text: "📱 " + (app["téléphone"] || 0) + " sur téléphone · 💻 " + (app["ordinateur"] || 0) + " sur ordinateur" }),
-          el("h3", { text: "Dossiers les plus ouverts" }), el("div", { class: "st-liste" }, top(somme("projets"), 12, (k) => noms[k] || k + " (renommé ou supprimé)")),
-          el("h3", { text: "D'où viennent les visiteurs" }), el("div", { class: "st-liste" }, top(somme("sources"), 10, (k) => (k === "direct" ? "accès direct / lien partagé" : k))),
-          el("p", { class: "vide", text: "Mesure anonyme, sans cookie : une visite = un onglet ouvert sur le site. Tes propres visites (connecté à l'admin) ne sont pas comptées." }));
+          el("section", { class: "st-carte large" }, el("h3", { text: "Visites par jour" }), barresJours),
+          el("div", { class: "st-grille" },
+            liste("Pays", somme("pays"), { nom: nomPays }),
+            liste("D'où viennent les visiteurs", somme("sources"), { nom: (k) => (k === "direct" ? "accès direct / lien partagé" : k) }),
+            liste("Appareils", somme("appareils")),
+            liste("Systèmes", somme("systemes")),
+            liste("Navigateurs et applis", somme("navigateurs")),
+            liste("Taille d'écran", somme("ecrans"), { ordre: ECRANS, nom: (k) => (k === "??" ? "inconnue" : k) }),
+            liste("Langue du navigateur", somme("langues"), { nom: nomLangue }),
+            liste("Langue choisie sur le site", somme("langue_site"), { nom: (k) => ({ fr: "français", en: "anglais", it: "italien" })[k] || k }),
+            liste("Durée des visites", somme("durees"), { ordre: DUREES }),
+            liste("Pages d'arrivée", somme("entrees"), { nom: (k) => (k === "accueil" ? "accueil (b-vi.fr)" : noms[k] || k) }),
+            barres([...Array(24)].map((_, i) => h[i] || 0), [...Array(24)].map((_, i) => i + "h"), "Heures de visite", "Visites par heure"),
+            barres([1, 2, 3, 4, 5, 6, 7].map((i) => sem[i] || 0), ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"], "Jours de la semaine", "Visites par jour de la semaine"),
+            liste("Dossiers les plus ouverts", somme("projets"), { nb: 12, nom: (k) => noms[k] || k + " (renommé ou supprimé)" }),
+            liste("Images les plus regardées", somme("images"), { nb: 12, nom: nomImage }),
+            liste("Fuseaux horaires", somme("villes"), { nb: 8, nom: (k) => (k === "??" ? "inconnu" : k.replace(/_/g, " ")) })),
+          el("p", { class: "vide", text: "Mesure anonyme, sans cookie ni adresse IP : le pays est déduit du fuseau horaire du navigateur (ou de sa langue). Une visite = un onglet ouvert sur le site. Tes propres visites (connecté à l'admin) ne sont pas comptées. Les données détaillées (pays, appareils…) commencent le 17/11/2026." }));
       };
       if (!ms.length) corps.replaceChildren(el("p", { text: "Pas encore de visite enregistrée. Les statistiques commencent aujourd'hui." }));
       else dessiner();
