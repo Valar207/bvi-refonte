@@ -1,3 +1,11 @@
+# Liens directs et aperçus de partage : / et /projet/... passent par projet.php ; plan du site dynamique
+Options -MultiViews
+DirectoryIndex projet.php index.php index.html
+RewriteEngine On
+RewriteRule ^$ projet.php [L]
+RewriteRule ^projet/(.*)$ projet.php?p=$1 [L,QSA,B]
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
 # Pages, scripts et styles toujours revérifiés (le site change souvent ; content.js est réécrit par l'administration)
 <IfModule mod_headers.c>
   <FilesMatch "^(index\.html|content\.js|data\.js|app\.js|style\.css)$">

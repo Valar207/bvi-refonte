@@ -86,10 +86,37 @@
 
   /* ---------- Index des nœuds ---------- */
   let uid = 0;
-  const walk = (nodes) => nodes.forEach((n) => { n.id = "w" + uid++; if (n.children) walk(n.children); });
-  walk(SITE);
+  // Lien direct : chaque dossier a une adresse /projet/<rubrique>/<dossier> (même calcul que projet.php côté serveur)
+  const ACCENTS = { à: "a", á: "a", â: "a", ä: "a", ã: "a", å: "a", ç: "c", è: "e", é: "e", ê: "e", ë: "e", ì: "i", í: "i", î: "i", ï: "i", ñ: "n", ò: "o", ó: "o", ô: "o", ö: "o", õ: "o", ù: "u", ú: "u", û: "u", ü: "u", ý: "y", ÿ: "y", œ: "oe", æ: "ae", ß: "ss" };
+  const slug = (s) => s.toLowerCase().replace(/[àáâäãåçèéêëìíîïñòóôöõùúûüýÿœæß]/g, (c) => ACCENTS[c]).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "dossier";
+  const PAR_CHEMIN = new Map();
+  const walk = (nodes, parent) => {
+    const pris = new Set();
+    nodes.forEach((n) => {
+      n.id = "w" + uid++;
+      let s = slug(n.name), k = 2; while (pris.has(s)) s = slug(n.name) + "-" + k++; pris.add(s);
+      n.parent = parent; n.chemin = parent ? parent.chemin + "/" + s : s;
+      PAR_CHEMIN.set(n.chemin, n);
+      if (n.children) walk(n.children, n);
+    });
+  };
+  walk(SITE, null);
   CONTACT.id = "w-contact";
   CONTACT.isContact = true;
+  CONTACT.chemin = "contact";
+  PAR_CHEMIN.set("contact", CONTACT);
+
+  // L'adresse suit ce qui est ouvert : fenêtre au premier plan (+ numéro de l'image dans la visionneuse)
+  let urlPrete = false;
+  function majURL() {
+    if (!urlPrete) return;
+    let haut = null;
+    wins.forEach((w) => { if (!w.min && (!haut || +w.el.style.zIndex > +haut.el.style.zIndex)) haut = w; });
+    let u = "/";
+    if (lbOpen && lbNode) u = "/projet/" + lbNode.chemin + "/" + (lbIndex + 1);
+    else if (haut) u = "/projet/" + haut.node.chemin;
+    if (location.pathname + location.hash !== u) history.replaceState(null, "", u);
+  }
 
   /* ---------- Fond : halo qui suit le curseur ---------- */
   let spotRaf = 0;
@@ -183,6 +210,7 @@
       o.tab.classList.toggle("activeFF", on && !o.min);
     });
     w.tab.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduced ? "auto" : "smooth" });
+    majURL();
   }
 
   function ctrlButton(cls, icon, label) {
@@ -385,6 +413,7 @@
     const w = wins.get(id);
     if (!w || w.min) return;
     w.min = true;
+    majURL();
     w.tab.classList.remove("activeFF");
     w.tab.classList.add("minim");
     setTimeout(() => {
@@ -406,6 +435,7 @@
     const w = wins.get(id);
     if (!w) return;
     wins.delete(id);
+    majURL();
     w.tab.classList.add("out");
     setTimeout(() => w.tab.remove(), reduced ? 0 : 300);
     const done = () => w.el.remove();
@@ -534,6 +564,7 @@
   function go(i, dir = 0) {
     const n = lbItems.length;
     lbIndex = (i + n) % n;
+    majURL();
     const it = lbItems[lbIndex];
     const token = ++lbToken;
     counter.innerHTML = `<b class="tick">${lbIndex + 1}</b> / ${n}`;
@@ -574,13 +605,14 @@
     lbOpen = false; // pas d'animation de taille pour la première image
     go(index);
     lb.classList.add("bg-active");
-    requestAnimationFrame(() => (lbOpen = true));
+    requestAnimationFrame(() => { lbOpen = true; majURL(); });
   }
 
   function closeLightbox() {
     lb.classList.remove("bg-active");
     lbOpen = false;
     lbToken++;
+    majURL();
   }
 
   // Flèches (on ignore le clic qui suit un swipe)
@@ -691,6 +723,27 @@
       f.style.setProperty("--d", 0.1 + i * 0.08 + "s");
       f.classList.add("in");
     });
+    ouvrirDepuisURL();
+  }
+
+  // /projet/identite/kosmos → ouvre identité puis kosmos ; /projet/identite/kosmos/3 → et la 3e image
+  function ouvrirDepuisURL() {
+    let p = decodeURIComponent(location.pathname).replace(/^\/projet\/?/, "");
+    if (p === location.pathname) p = location.hash.replace(/^#\/?/, "");   // aussi b-vi.fr/#identite/kosmos
+    p = p.replace(/\/+$/, "");
+    const m = p.match(/^(.*?)(?:\/(\d+))?$/);
+    let node = m && PAR_CHEMIN.get(m[1]);
+    const img = m && m[2] ? +m[2] - 1 : null;
+    if (!node && m && m[1]) node = [...PAR_CHEMIN.values()].find((n) => n.chemin.split("/").pop() === m[1]);   // juste « kosmos »
+    if (!node) { urlPrete = true; majURL(); return; }
+    const chaine = []; for (let n = node; n; n = n.parent) chaine.unshift(n);
+    const icone = (n) => [...desktop.children].find((f) => f.querySelector("h2") && f.querySelector("h2")._t === n.name);
+    let d = reduced ? 0 : 700;
+    chaine.forEach((n, i) => setTimeout(() => openWindow(n, i === 0 ? icone(n) : null), d + i * (reduced ? 0 : 450)));
+    setTimeout(() => {
+      urlPrete = true;
+      if (img != null && node.items && node.items[img]) openLightbox(node, img); else majURL();
+    }, d + chaine.length * (reduced ? 0 : 450) + 200);
   }
 
   function boot() {

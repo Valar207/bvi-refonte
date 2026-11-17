@@ -35,3 +35,10 @@ Dans les descriptions des dossiers et les légendes de la visionneuse, un lien s
 
 ## Icône « admin » sur le bureau
 En bas à droite du bureau, un cadenas « admin » mène à `/admin/`, **uniquement pour Lucas connecté**. À la connexion, l'administration pose un repère `bvi-admin` dans le `localStorage` du navigateur (retiré à la déconnexion ou à l'expiration de la session). Le site ne fait la vérification auprès du serveur (`/admin/api.php?a=etat`) que si ce repère existe : un visiteur normal n'envoie aucune requête et ne voit rien. Icône : `assets/admin.png` (pixel art, même trait blanc que les autres).
+
+## Liens directs et aperçus de partage
+- Chaque dossier a son adresse : `b-vi.fr/projet/<rubrique>/<dossier>` (ex. `/projet/identite/kosmos`), et `/projet/identite/kosmos/3` ouvre aussi la 3e image. `/projet/kosmos` marche aussi, comme `b-vi.fr/#identite/kosmos`. L'adresse dans la barre du navigateur suit ce qui est ouvert : il suffit de la copier pour partager.
+- Les adresses sont calculées à partir des noms (minuscules, sans accents, tirets) : `slug()` dans `app.js` et `slug_bvi()` dans `projet-lib.php` doivent rester identiques. Renommer un dossier dans l'administration change donc son adresse.
+- `projet.php` sert la page d'accueil et les `/projet/...` : il renvoie `index.html` avec le titre, la description et l'image du projet (Open Graph / Twitter, pour WhatsApp, LinkedIn, Instagram…), l'adresse canonique et une version texte du contenu pour Google (`.seo`, hors écran). En cas de souci, il renvoie `index.html` tel quel. Adresse inconnue → 404.
+- `sitemap.php` répond sur `/sitemap.xml` (toujours à jour avec le contenu publié), `robots.txt` le déclare et exclut `/admin/`.
+- `.htaccess` : `Options -MultiViews` (sinon OVH détourne `/projet/...`), `DirectoryIndex projet.php index.php index.html`, réécritures vers projet.php / sitemap.php. `index.html` a `<base href="/">` pour que les fichiers se chargent depuis n'importe quelle adresse.

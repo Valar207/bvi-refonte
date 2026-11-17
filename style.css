@@ -120,6 +120,9 @@ a:hover::after { transform: scaleX(1); transform-origin: left; }
 }
 @keyframes blink { 50% { opacity: 0; } }
 
+/* Version texte pour Google (projet.php) : hors écran */
+.seo { position: absolute; left: -10000px; top: 0; width: 1px; height: 1px; overflow: hidden; }
+
 /* ---------- Desktop ---------- */
 .folders {
   position: relative; z-index: 1;
