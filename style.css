@@ -381,7 +381,7 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
 .nextBtn { left: 50%; right: 0; justify-content: flex-end; cursor: url("assets/fleche_droite.png") 69 18, e-resize; }
 .prevBtn span, .nextBtn span { margin: 12px; opacity: 0; }
 .counter {
-  position: absolute; top: -34px; left: -2px; padding: 4px 10px; background: black; border: 2px solid white; border-bottom: 0;
+  position: absolute; bottom: 100%; left: -2px; padding: 4px 10px; background: black; border: 2px solid white; border-bottom: 0;   /* toujours posé sur le cadre */
   font-size: 16px;
 }
 .counter b { display: inline-block; font-weight: normal; }
@@ -432,7 +432,6 @@ footer.in { transform: none; transition: transform 0.7s var(--ease-out); }
   .foldersInW { width: 110px; }
   .lb-fig img { max-width: calc(94vw - 4px); max-height: 68vh; }
   .croix_modal { top: -50px; right: -2px; }
-  .counter { top: -40px; }
   .prevBtn span, .nextBtn span { opacity: 1; }
   .time-footer { display: none; }
   .line { margin: 3px 6px; }
