@@ -1328,6 +1328,7 @@
       c.drap = !c.drap; drapeaux += c.drap ? 1 : -1;
       c.b.textContent = c.drap ? "⚑" : ""; c.b.classList.toggle("drap", c.drap);
       cpt.textContent = fmt(NB - drapeaux);
+      if (c.drap) verifier();
     }
     // Clic sur un chiffre déjà découvert : s'il reste juste autant de cases cachées que sa valeur, on y pose les drapeaux ;
     // si le bon nombre de drapeaux l'entoure déjà, on découvre toutes les autres cases autour
@@ -1352,8 +1353,12 @@
         if (x.n) { x.b.textContent = x.n; x.b.dataset.n = x.n; } else voisins(x).forEach((v) => !v.vu && pile.push(v));
       }
     }
+    // Gagné : toutes les cases sans mine sont découvertes, OU toutes les mines (et seulement elles) portent un drapeau
     function verifier() {
-      if (cases.every((x) => x.mine || x.vu)) { fini = true; clearInterval(timer); envoyerScore("mines-" + niveau, Math.max(1, Math.round((Date.now() - t0) / 1000)), tableau); face.textContent = "B6 ✓"; face.classList.add("gagne"); cases.forEach((x) => { if (x.mine) { x.b.textContent = "⚑"; x.b.classList.add("drap"); } }); cpt.textContent = "000"; }
+      const toutDecouvert = cases.every((x) => x.mine || x.vu);
+      const toutMarque = !premier && drapeaux === NB && cases.every((x) => x.mine === x.drap);
+      if (toutDecouvert || toutMarque) {
+        if (!toutDecouvert) cases.forEach((x) => { if (!x.mine && !x.vu) ouvrir(x); }); fini = true; clearInterval(timer); envoyerScore("mines-" + niveau, Math.max(1, Math.round((Date.now() - t0) / 1000)), tableau); face.textContent = "B6 ✓"; face.classList.add("gagne"); cases.forEach((x) => { if (x.mine) { x.b.textContent = "⚑"; x.b.classList.add("drap"); } }); cpt.textContent = "000"; }
     }
     function decouvrir(c) {
       if (fini || c.drap) return;
