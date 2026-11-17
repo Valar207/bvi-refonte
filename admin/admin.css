@@ -134,3 +134,16 @@ section.bloc > h2 .aide { font-family: system-ui, sans-serif; font-size: 13px; c
 .ajout-video { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
 .ligne-video { display: flex; gap: 6px; flex-wrap: wrap; }
 .ligne-video input { flex: 1 1 240px; }
+
+/* Statistiques */
+.modale.large { width: min(760px, 100%); }
+.st-tete { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.st-gros { font-family: Px, monospace; font-size: 34px; font-weight: 400; }
+.st-choix { display: flex; gap: 6px; }
+.st-barres { display: flex; align-items: flex-end; gap: 2px; height: 140px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.st-b { flex: 1; min-width: 2px; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 1px; }
+.st-b:hover { background: var(--fg); }
+.modale h3 { margin: 8px 0 0; font-size: 15px; }
+.st-liste { display: flex; flex-direction: column; gap: 2px; }
+.st-l { display: flex; gap: 10px; padding: 5px 8px; border-radius: 6px; background: #141414; font-size: 14px; }
+.st-l .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

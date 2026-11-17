@@ -48,3 +48,6 @@ Les vignettes des fenêtres chargent des miniatures légères : `images/_mini/<c
 
 ## Vidéos
 Un élément d'un dossier peut être une vidéo : `{ video: "https://youtu.be/…" | "https://vimeo.com/…" | "@images/videos/…/x.mp4", title, desc, poster?, src? }`. Dans l'administration : « Ajouter la vidéo » (lien YouTube ou Vimeo ; pour Vimeo, l'image et le titre sont récupérés automatiquement) ou « Envoyer un fichier vidéo » (MP4/WebM/MOV, 300 Mo max, rangé dans `images/videos/`). Sur le site (`prepVideo()` dans data.js) : vignette avec ▶ (image YouTube/Vimeo, ou première image du fichier), lecture dans la visionneuse en 16:9 (YouTube sans cookies, Vimeo sans suivi), son coupé à la fermeture ou au passage à l'image suivante.
+
+## Statistiques
+Mesure d'audience maison, anonyme et sans cookie (pas de bandeau de consentement nécessaire) : `stats.php` reçoit une visite par onglet (avec le site d'où l'on vient) et chaque dossier ouvert (une fois par onglet), envoyés par `mesurer()` dans app.js avec `navigator.sendBeacon`. Les robots et aperçus de liens sont ignorés, et les visites de Lucas connecté à l'admin ne sont pas comptées. Seuls des compteurs sont gardés (jour, dossier, source, téléphone/ordinateur), dans `bvi-admin/data/prod/stats/AAAA-MM.json`. Lecture : bouton « Statistiques » de l'administration (30 jours ou 12 mois).

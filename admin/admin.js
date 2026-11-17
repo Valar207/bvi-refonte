@@ -175,6 +175,7 @@
         instance !== "prod" ? el("span", { class: "qui", text: "version de test (" + instance + ")" }) : null,
         el("span", { class: "qui", text: user }),
         el("a", { class: "b sm", href: "/?v=" + Date.now(), target: "_blank", rel: "noopener" }, "Voir le site ↗"),
+        el("button", { class: "b sm", type: "button", onclick: statistiques }, "Statistiques"),
         el("button", { class: "b sm", type: "button", onclick: versions }, "Versions"),
         el("button", { class: "b sm", type: "button", onclick: deconnexion }, "Déconnexion")),
       el("div", { class: "cadre" }, arbre(), main),
@@ -466,6 +467,54 @@
           try { const r = await api("restaurer", { id: v.id }); C = r.contenu; publie = JSON.stringify(C); effacerBrouillon(); fermer(); sel = { k: "dossier", chemin: [0] }; rendu(); toast("Version du " + v.date + " remise en ligne."); }
           catch (e) { toast(e.message, true); }
         }, true))));
+    } catch (e) { corps.replaceChildren(el("p", { class: "msg err", text: e.message })); }
+  }
+
+  /* ---------- statistiques ---------- */
+  const ACCENTS = { à: "a", á: "a", â: "a", ä: "a", ã: "a", å: "a", ç: "c", è: "e", é: "e", ê: "e", ë: "e", ì: "i", í: "i", î: "i", ï: "i", ñ: "n", ò: "o", ó: "o", ô: "o", ö: "o", õ: "o", ù: "u", ú: "u", û: "u", ü: "u", ý: "y", ÿ: "y", œ: "oe", æ: "ae", ß: "ss" };
+  const slug = (s) => s.toLowerCase().replace(/[àáâäãåçèéêëìíîïñòóôöõùúûüýÿœæß]/g, (c) => ACCENTS[c]).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "dossier";
+  function nomsDesChemins() {
+    const out = { contact: C.contact.name };
+    const w = (arr, base) => { const pris = new Set(); arr.forEach((n) => { let s = slug(n.name), k = 2; while (pris.has(s)) s = slug(n.name) + "-" + k++; pris.add(s); const ch = base ? base + "/" + s : s; out[ch] = (base ? out[base] + " › " : "") + n.name; if (n.children) w(n.children, ch); }); };
+    w(C.site, ""); return out;
+  }
+  async function statistiques() {
+    const corps = el("div", { class: "corps" }, el("p", { class: "vide", text: "Chargement…" }));
+    const fermer = () => voile.remove();
+    const voile = el("div", { class: "voile", onclick: (e) => { if (e.target === voile) fermer(); } },
+      el("div", { class: "modale large", role: "dialog", "aria-modal": "true", "aria-label": "Statistiques" },
+        el("div", { class: "barre" }, el("span", { text: "Statistiques" }), el("button", { type: "button", "aria-label": "Fermer", onclick: fermer }, "✕")), corps));
+    document.body.append(voile);
+    try {
+      const d = await api("stats");
+      const ms = Object.keys(d.mois).sort().reverse();
+      let periode = "30";
+      const dessiner = () => {
+        const tous = {}; const jours = {};
+        ms.forEach((m) => { Object.entries(d.mois[m].jours || {}).forEach(([j, n]) => (jours[j] = n)); });
+        const fin = new Date(d.aujourdhui + "T12:00:00"), nbj = periode === "30" ? 30 : 365;
+        const debut = new Date(fin); debut.setDate(fin.getDate() - nbj + 1);
+        const dj = (x) => x.toISOString().slice(0, 10);
+        const garde = (m) => periode === "an" || m >= dj(debut).slice(0, 7);
+        const somme = (k) => { const o = {}; ms.filter(garde).forEach((m) => Object.entries(d.mois[m][k] || {}).forEach(([x, n]) => (o[x] = (o[x] || 0) + n))); return o; };
+        const serie = []; for (let i = 0; i < nbj; i++) { const x = new Date(debut); x.setDate(debut.getDate() + i); serie.push([dj(x), jours[dj(x)] || 0]); }
+        const total = serie.reduce((s, [, n]) => s + n, 0), max = Math.max(1, ...serie.map(([, n]) => n));
+        const noms = nomsDesChemins();
+        const top = (o, nb, nom) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, nb).map(([k, n]) => el("div", { class: "st-l" }, el("span", { class: "grow", text: nom ? nom(k) : k }), el("b", { text: String(n) })));
+        const barres = el("div", { class: "st-barres", role: "img", "aria-label": "Visites par jour" }, serie.map(([j, n]) => { const b = el("div", { class: "st-b", title: j.split("-").reverse().join("/") + " : " + n + " visite(s)" }); b.style.height = Math.round((n / max) * 100) + "%"; return b; }));
+        const app = somme("appareils");
+        corps.replaceChildren(
+          el("div", { class: "st-tete" },
+            el("div", {}, el("b", { class: "st-gros", text: String(total) }), " visites ", el("span", { class: "vide", text: periode === "30" ? "sur 30 jours" : "sur 12 mois" })),
+            el("div", { class: "st-choix" }, [["30", "30 jours"], ["an", "12 mois"]].map(([v, t]) => el("button", { class: "b sm" + (v === periode ? " pri" : ""), type: "button", onclick: () => { periode = v; dessiner(); } }, t)))),
+          barres,
+          el("p", { class: "vide", text: "📱 " + (app["téléphone"] || 0) + " sur téléphone · 💻 " + (app["ordinateur"] || 0) + " sur ordinateur" }),
+          el("h3", { text: "Dossiers les plus ouverts" }), el("div", { class: "st-liste" }, top(somme("projets"), 12, (k) => noms[k] || k + " (renommé ou supprimé)")),
+          el("h3", { text: "D'où viennent les visiteurs" }), el("div", { class: "st-liste" }, top(somme("sources"), 10, (k) => (k === "direct" ? "accès direct / lien partagé" : k))),
+          el("p", { class: "vide", text: "Mesure anonyme, sans cookie : une visite = un onglet ouvert sur le site. Tes propres visites (connecté à l'admin) ne sont pas comptées." }));
+      };
+      if (!ms.length) corps.replaceChildren(el("p", { text: "Pas encore de visite enregistrée. Les statistiques commencent aujourd'hui." }));
+      else dessiner();
     } catch (e) { corps.replaceChildren(el("p", { class: "msg err", text: e.message })); }
   }
 

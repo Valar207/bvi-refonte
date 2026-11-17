@@ -50,6 +50,13 @@ case 'publier':
     enregistrer($c, 'publication');
     repondre(['ok' => true, 'quand' => date('H:i')]);
 
+case 'stats':
+    exiger_connexion();
+    $dir = "$PRIV/data/prod/stats";
+    $mois = [];
+    for ($i = 0; $i < 12; $i++) { $m = date('Y-m', strtotime("first day of -$i month")); $d = lire_json("$dir/$m.json"); if ($d) $mois[$m] = $d; }
+    repondre(['ok' => true, 'mois' => $mois, 'aujourdhui' => date('Y-m-d')]);
+
 case 'versions':
     exiger_connexion();
     $out = [];

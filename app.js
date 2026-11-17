@@ -106,6 +106,22 @@
   CONTACT.chemin = "contact";
   PAR_CHEMIN.set("contact", CONTACT);
 
+  // Mesure d'audience maison (stats.php) : anonyme, sans cookie. Une visite par onglet, chaque dossier une fois par onglet.
+  // Lucas connecté à l'administration (repère bvi-admin) n'est pas compté.
+  const vus = new Set();
+  function mesurer(e, c) {
+    try {
+      if (localStorage.getItem("bvi-admin") || !navigator.sendBeacon) return;
+      const cle = e + ":" + (c || "");
+      if (vus.has(cle) || sessionStorage.getItem("bvi-m-" + cle)) return;
+      vus.add(cle); sessionStorage.setItem("bvi-m-" + cle, "1");
+      const fd = new FormData(); fd.append("e", e);
+      if (c) fd.append("c", c);
+      if (e === "v") { let s = ""; try { s = document.referrer ? new URL(document.referrer).hostname : ""; } catch (_) {} fd.append("s", s); }
+      navigator.sendBeacon("/stats.php", fd);
+    } catch (_) {}
+  }
+
   // L'adresse suit ce qui est ouvert : fenêtre au premier plan (+ numéro de l'image dans la visionneuse)
   let urlPrete = false;
   function majURL() {
@@ -275,6 +291,7 @@
 
     const state = { el: win, tab, node, min: false };
     wins.set(node.id, state);
+    mesurer("p", node.chemin);
     focusWin(node.id);
 
     if (node.isContact) renderContact(content, true);
@@ -752,6 +769,7 @@
       f.classList.add("in");
     });
     ouvrirDepuisURL();
+    mesurer("v");
   }
 
   // /projet/identite/kosmos → ouvre identité puis kosmos ; /projet/identite/kosmos/3 → et la 3e image
