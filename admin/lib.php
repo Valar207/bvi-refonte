@@ -156,6 +156,23 @@ function enregistrer($c, $note) {
 }
 
 /* ---------- Fichiers envoyés ---------- */
+// Miniature légère pour les vignettes du site (240 px de haut max, JPEG, fond gris foncé sous la transparence)
+function miniature($src, $dst) {
+    if (!function_exists('imagecreatefromstring')) return false;
+    $im = @imagecreatefromstring(file_get_contents($src));
+    if (!$im) return false;
+    $w = imagesx($im); $h = imagesy($im);
+    $k = min(1, 640 / $w, 240 / $h);
+    $mw = max(1, (int)round($w * $k)); $mh = max(1, (int)round($h * $k));
+    $m = imagecreatetruecolor($mw, $mh);
+    imagefill($m, 0, 0, imagecolorallocate($m, 42, 42, 42));
+    imagecopyresampled($m, $im, 0, 0, 0, 0, $mw, $mh, $w, $h);
+    if (!is_dir(dirname($dst))) @mkdir(dirname($dst), 0755, true);
+    $ok = imagejpeg($m, $dst, 80);
+    imagedestroy($im); imagedestroy($m);
+    if ($ok) @chmod($dst, 0644);
+    return $ok;
+}
 function nom_propre($s, $max = 80) {
     $s = preg_replace('/[^\p{L}\p{N} ._-]+/u', '-', $s);
     $s = trim(preg_replace('/[ -]{2,}/', ' ', $s), ' .-');

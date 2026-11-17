@@ -113,6 +113,7 @@ case 'envoyer':   // une image (ou un PDF) → images/<dossier>/<nom>
         if (!$ok) erreur('Enregistrement de l’image impossible.', 500);
     } elseif (!move_uploaded_file($f['tmp_name'], $cible)) erreur('Enregistrement du fichier impossible.', 500);
     @chmod($cible, 0644);
+    if ($ext !== 'pdf') miniature($cible, "$IMAGES/_mini/$rel/" . preg_replace('/\.[A-Za-z0-9]{2,4}$/', '', $nom) . '.jpg');
     repondre(['ok' => true, 'chemin' => "$rel/$nom", 'pdf' => $ext === 'pdf']);
 
 default:

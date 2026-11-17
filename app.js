@@ -308,8 +308,10 @@
       im.loading = "lazy";
       im.decoding = "async";
       setA(im, "alt", it.title || node.name);
-      im.onload = im.onerror = () => th.classList.add("loaded");
-      im.src = it.src;
+      im.onload = () => th.classList.add("loaded");
+      // miniature légère ; si elle n'existe pas encore, on retombe sur l'image en grand
+      im.onerror = () => { if (im.src !== it.src) im.src = it.src; else th.classList.add("loaded"); };
+      im.src = it.mini || it.src;
       th.append(im);
       card.append(th);
       if (it.title) card.append(setT(el("h2"), it.title));

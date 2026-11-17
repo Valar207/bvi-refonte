@@ -236,7 +236,7 @@
     let depart = null;
     items.forEach((it, i) => {
       const v = el("div", { class: "vign", draggable: "true", title: "Glisse pour changer l'ordre" }, el("span", { text: String(i + 1) }));
-      v.style.backgroundImage = `url("${IMG(it.src)}")`;
+      v.style.backgroundImage = `url("${IMG("_mini/" + it.src.replace(/\.[A-Za-z0-9]{2,4}$/, "") + ".jpg")}"), url("${IMG(it.src)}")`;
       const titre = el("input", { type: "text", value: it.title || "", placeholder: "Titre (facultatif)", maxlength: 200 });
       titre.addEventListener("input", () => { if (titre.value.trim()) it.title = titre.value; else delete it.title; change(); });
       const leg = el("details", {}, el("summary", { text: "Légende dans la visionneuse" + (it.desc ? " ✓" : "") }), champsLangues(it, "desc", { lignes: 2, liens: true }));

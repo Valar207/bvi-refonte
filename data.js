@@ -25,7 +25,8 @@ const img = (p) => IMG_BASE + encodeURI(p);
 const prepDossier = (n) => {
   const o = { ...n };
   if (n.children) o.children = n.children.map(prepDossier);
-  if (n.items) o.items = n.items.map((it) => ({ ...it, src: img(it.src) }));
+  // mini : miniature légère (images/_mini/<chemin sans extension>.jpg), créée à l'envoi par l'administration
+  if (n.items) o.items = n.items.map((it) => ({ ...it, src: img(it.src), mini: img("_mini/" + it.src.replace(/\.[A-Za-z0-9]{2,4}$/, "") + ".jpg") }));
   return o;
 };
 const prepContact = (c) => ({
