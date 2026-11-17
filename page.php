@@ -22,7 +22,7 @@ try {
     if ($p !== '' && !$n) {   // juste « kosmos »
         foreach ($tous as $ch => $x) if (basename($ch) === $p) { $n = $x; $p = $ch; break; }
     }
-    if ($p === 'contact') $n = null;
+    if ($p === 'contact' || $p === 'jeux' || strpos($p, 'jeux/') === 0) { $n = null; $p = $p === 'contact' ? 'contact' : 'jeux'; }
 
     if ($n) {
         $titre = $n['name'] . ' — Lucas Bessis · B-VI';
@@ -67,7 +67,7 @@ try {
     $html = preg_replace('~<title>.*?</title>~s', '<title>' . h($titre) . '</title>', $html, 1);
     $html = preg_replace('~<meta name="description" content="[^"]*" />~', '<meta name="description" content="' . h($court) . '" />' . $meta, $html, 1);
     $html = preg_replace('~<body>~', "<body>$seo", $html, 1);
-    if ($p !== '' && !$n && $p !== 'contact') http_response_code(404);
+    if ($p !== '' && !$n && $p !== 'contact' && $p !== 'jeux') http_response_code(404);
 } catch (Throwable $e) {
     $html = @file_get_contents($INDEX);
 }

@@ -54,3 +54,9 @@ Mesure d'audience maison, anonyme et sans cookie (pas de bandeau de consentement
 
 ## Badge « nouveau »
 Dans l'administration, chaque dossier a une case « Afficher le badge nouveau » (`nouveau: true` dans le contenu). Sur le site, une étiquette « nouveau / new / nuovo » s'affiche sur l'icône du dossier (bureau et fenêtres), et un petit carré blanc sur les dossiers qui en contiennent un (`badgeNouveau()` dans app.js).
+
+## Clic droit, sons, icônes déplaçables, jeux
+- **Clic droit sur le bureau** : menu rétro (`ouvrirMenu()` dans app.js) — Actualiser (rejoue l'arrivée des icônes), Fond d'écran (couleurs qui changent / noir / damier / grille de points, mémorisé dans le navigateur), Ranger les icônes, Sons activés/coupés, À propos de B6 (petite fenêtre avec le logo qui tourne). Sur Android, un appui long ouvre aussi le menu ; Safari iPhone ne le permet pas.
+- **Sons système** : bips 8 bits synthétisés avec Web Audio (aucun fichier) à l'ouverture, la fermeture, la réduction, au clic, dans les jeux. Coupés par défaut ; bouton haut-parleur dans la barre des tâches (`son()`, `basculerSons()`), choix mémorisé.
+- **Icônes déplaçables** (souris uniquement) : glisser une icône du bureau la déplace, aimantée sur une grille de 8 px ; positions mémorisées dans le navigateur (`bvi-icones`, en proportion de l'écran), « Ranger les icônes » remet tout en place. Le clic qui suit un glisser n'ouvre pas le dossier.
+- **Jeux** : icône « jeux » sur le bureau (nœud `JEUX` dans app.js, pas dans le contenu de l'administration) avec un démineur (9 × 9, 10 mines, premier clic jamais sur une mine, clic droit ou appui long = drapeau, logo B6 pour rejouer) et un snake (flèches/ZQSD, glisser du doigt ou croix à l'écran sur téléphone, la pomme est le logo B6, le serpent prend la couleur du fond, record mémorisé). Liens directs : `/projet/jeux/demineur`, `/projet/jeux/snake`.

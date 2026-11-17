@@ -105,6 +105,11 @@
   CONTACT.isContact = true;
   CONTACT.chemin = "contact";
   PAR_CHEMIN.set("contact", CONTACT);
+  // Dossier « jeux » (pas dans le contenu de l'administration) : démineur et snake
+  const JEUX = { id: "w-jeux", name: "jeux", chemin: "jeux", desc: T("Deux petits jeux, aux couleurs du bureau.", "Two little games, in the desktop's colours.", "Due piccoli giochi, con i colori della scrivania."),
+    children: [{ id: "w-mines", name: "démineur", jeu: "mines", icone: "mine.png", chemin: "jeux/demineur" }, { id: "w-snake", name: "snake", jeu: "snake", icone: "snake.png", chemin: "jeux/snake" }] };
+  JEUX.children.forEach((c) => { c.parent = JEUX; PAR_CHEMIN.set(c.chemin, c); });
+  PAR_CHEMIN.set("jeux", JEUX);
 
   // Mesure d'audience maison (stats.php) : anonyme, sans cookie. Une visite par onglet, chaque dossier une fois par onglet.
   // Lucas connecté à l'administration (repère bvi-admin) n'est pas compté.
@@ -174,6 +179,7 @@
   };
   SITE.forEach((n) => desktop.append(makeIcon(n, "dossier.png")));
   desktop.append(makeIcon(CONTACT, "ordi.png"));
+  desktop.append(makeIcon(JEUX, "dossier.png"));
 
   // Icône « admin » en bas à droite du bureau : seulement pour Lucas connecté à l'administration.
   // L'administration pose un repère « bvi-admin » dans le navigateur ; on vérifie alors auprès du serveur que la session est vraiment ouverte.
@@ -299,9 +305,11 @@
     const state = { el: win, tab, node, min: false };
     wins.set(node.id, state);
     mesurer("p", node.chemin);
+    son("ouvre");
     focusWin(node.id);
 
     if (node.isContact) renderContact(content, true);
+    else if (node.jeu) renderJeu(node, content, win);
     else renderFolder(node, content);
 
     bMin.addEventListener("click", (e) => { e.stopPropagation(); minimize(node.id); });
@@ -354,9 +362,9 @@
       const f = el("div", "foldersInW folder-item");
       f.style.setProperty("--d", 0.18 + i++ * 0.05 + "s");
       const im = el("img");
-      im.src = A + "dossier.png";
+      im.src = A + (child.icone || "dossier.png");
       im.alt = "";
-      f.append(im, setT(el("h2"), child.name));
+      f.append(im, setT(el("h2"), child.jeu === "mines" ? UI.demineur : child.name));
       badgeNouveau(f, child);
       f.addEventListener("click", () => openWindow(child, im));
       left.append(f);
@@ -449,6 +457,7 @@
     if (!w || w.min) return;
     w.min = true;
     majURL();
+    son("reduit");
     w.tab.classList.remove("activeFF");
     w.tab.classList.add("minim");
     setTimeout(() => {
@@ -471,6 +480,7 @@
     if (!w) return;
     wins.delete(id);
     majURL();
+    son("ferme");
     w.tab.classList.add("out");
     setTimeout(() => w.tab.remove(), reduced ? 0 : 300);
     const done = () => w.el.remove();
@@ -838,7 +848,7 @@
   const aDemander = tactile && typeof DeviceMotionEvent.requestPermission === "function";
   let capteurs = aDemander ? "inconnu" : tactile ? "ok" : "non";   // inconnu → ok / refuse
   let gx = 0, gy = 0, dernierCapteur = 0, last = 0;
-  const T = 120;   // taille du logo
+  const TL = 120;   // taille du logo
   const couleur = () => { hue = (hue + 67) % 360; logo.style.filter = `hue-rotate(${hue}deg) saturate(3)`; };
 
   // iOS et Android donnent les mesures avec des signes opposés : on part d'une supposition,
@@ -859,7 +869,7 @@
   });
 
   const bounce = (now) => {
-    const W = innerWidth - T, H = innerHeight - T;
+    const W = innerWidth - TL, H = innerHeight - TL;
     const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
     let hit = false;
     if (now - dernierCapteur < 1000) {
@@ -868,7 +878,7 @@
       sx += svx * dt; sy += svy * dt;
       if (sx < 0 || sx > W) { if (Math.abs(svx) > 120) hit = true; svx *= -0.62; sx = clamp(sx, 0, W); }
       if (sy < 0 || sy > H) { if (Math.abs(svy) > 120) hit = true; svy *= -0.62; sy = clamp(sy, 0, H); }
-      rot += (svx / (T / 2)) * dt * 57.3;   // la boule roule
+      rot += (svx / (TL / 2)) * dt * 57.3;   // la boule roule
     } else {
       // rebond classique (ordinateur, ou capteurs indisponibles)
       if (Math.abs(svx) > 10) { svx = Math.sign(svx) * 2.2; svy = Math.sign(svy || 1) * 1.8; }
@@ -1034,5 +1044,324 @@
       if (t < DUREE) requestAnimationFrame(image); else stop();
     }
     requestAnimationFrame(image);
+  }
+
+  /* =====================================================================
+     Sons système rétro (coupés par défaut, haut-parleur dans la barre des tâches)
+     Synthétisés avec Web Audio : aucun fichier à charger.
+     ===================================================================== */
+  var audio = null, sonsOn = false;
+  try { sonsOn = localStorage.getItem("bvi-son") === "1"; } catch (_) {}
+  function bip(f1, f2, duree, type = "square", vol = 0.06, delai = 0) {
+    if (!audio) return;
+    const t0 = audio.currentTime + delai, o = audio.createOscillator(), g = audio.createGain();
+    o.type = type; o.frequency.setValueAtTime(f1, t0); o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t0 + duree);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + duree);
+    o.connect(g).connect(audio.destination); o.start(t0); o.stop(t0 + duree + 0.02);
+  }
+  function son(nom) {
+    if (!sonsOn || !audio) return;
+    if (audio.state === "suspended") audio.resume();
+    const S = {
+      ouvre: () => { bip(330, 660, 0.09); bip(660, 990, 0.08, "square", 0.05, 0.07); },
+      ferme: () => { bip(660, 220, 0.12); },
+      reduit: () => { bip(520, 260, 0.1, "triangle", 0.08); },
+      clic: () => { bip(1200, 900, 0.025, "square", 0.04); },
+      demarrage: () => { [523, 659, 784, 1047].forEach((f, i) => bip(f, f, 0.16, "triangle", 0.07, i * 0.11)); },
+      mange: () => { bip(880, 1320, 0.06, "square", 0.05); },
+      boum: () => { bip(200, 40, 0.5, "sawtooth", 0.09); bip(120, 30, 0.6, "square", 0.06, 0.05); },
+      gagne: () => { [659, 784, 988, 1319].forEach((f, i) => bip(f, f, 0.12, "square", 0.05, i * 0.1)); },
+      drapeau: () => { bip(1500, 1500, 0.03, "square", 0.04); },
+    };
+    (S[nom] || (() => {}))();
+  }
+  const hp = el("button", "hp-btn");
+  const dessinHP = () => {
+    hp.innerHTML = `<svg viewBox="0 0 16 16" width="20" height="20" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M2 6h3l4-3h1v10H9L5 10H2z"/>${sonsOn ? '<path fill="currentColor" d="M12 5h1v1h-1zM13 6h1v4h-1zM12 10h1v1h-1z"/>' : '<path fill="currentColor" d="M11 6h1v1h-1zM14 6h1v1h-1zM12 7h2v2h-2zM11 9h1v1h-1zM14 9h1v1h-1z"/>'}</svg>`;
+    setA(hp, "aria-label", sonsOn ? UI.sonsOn : UI.sonsOff); setA(hp, "title", sonsOn ? UI.sonsOn : UI.sonsOff);
+    hp.classList.toggle("activeFF", sonsOn);
+  };
+  function basculerSons() {
+    sonsOn = !sonsOn;
+    try { localStorage.setItem("bvi-son", sonsOn ? "1" : "0"); } catch (_) {}
+    if (sonsOn && !audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { sonsOn = false; } }
+    dessinHP(); son("demarrage");
+  }
+  hp.addEventListener("click", basculerSons);
+  $("#langs").before(hp, el("div", "line"));
+  dessinHP();
+  // le navigateur n'autorise le son qu'après un geste : on prépare l'audio au premier clic si les sons sont activés
+  addEventListener("pointerdown", () => { if (sonsOn && !audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {} } }, { once: true, capture: true });
+  desktop.addEventListener("click", (e) => { if (e.target.closest(".folder")) son("clic"); });
+
+  /* =====================================================================
+     Icônes déplaçables sur le bureau (souris), positions mémorisées
+     ===================================================================== */
+  const CLE_ICONES = "bvi-icones";
+  const idIcone = (f) => { const h = f.querySelector("h2"); return h ? String(h._t && h._t.fr ? h._t.fr : h._t || h.textContent) : ""; };
+  let positions = {};
+  try { positions = JSON.parse(localStorage.getItem(CLE_ICONES) || "{}") || {}; } catch (_) {}
+  function modeLibre() {
+    if (desktop.classList.contains("libre")) return;
+    const r0 = desktop.getBoundingClientRect();
+    const pos = [...desktop.children].map((f) => { const r = f.getBoundingClientRect(); return [f, r.left - r0.left + desktop.scrollLeft, r.top - r0.top + desktop.scrollTop]; });
+    desktop.classList.add("libre");
+    pos.forEach(([f, x, y]) => { f.style.left = x + "px"; f.style.top = y + "px"; });
+  }
+  function placer() {
+    const ids = Object.keys(positions);
+    if (!ids.length) return;
+    modeLibre();
+    const W = desktop.clientWidth, H = desktop.clientHeight;
+    [...desktop.children].forEach((f) => {
+      const p = positions[idIcone(f)];
+      if (p) { f.style.left = clamp(p[0] * W, 0, W - f.offsetWidth) + "px"; f.style.top = clamp(p[1] * H, 0, H - f.offsetHeight) + "px"; }
+    });
+  }
+  function ranger() {
+    positions = {}; try { localStorage.removeItem(CLE_ICONES); } catch (_) {}
+    desktop.classList.remove("libre");
+    [...desktop.children].forEach((f) => { f.style.left = f.style.top = ""; });
+  }
+  if (matchMedia("(pointer: fine)").matches) {
+    let glisse = null;
+    desktop.addEventListener("pointerdown", (e) => {
+      const f = e.target.closest(".folder"); if (!f || e.button !== 0) return;
+      glisse = { f, x: e.clientX, y: e.clientY, bouge: false };
+    });
+    addEventListener("pointermove", (e) => {
+      if (!glisse) return;
+      const dx = e.clientX - glisse.x, dy = e.clientY - glisse.y;
+      if (!glisse.bouge && Math.hypot(dx, dy) < 6) return;
+      if (!glisse.bouge) {
+        modeLibre(); glisse.bouge = true;
+        glisse.l = parseFloat(glisse.f.style.left) || 0; glisse.t = parseFloat(glisse.f.style.top) || 0;
+        glisse.f.classList.add("en-main"); glisse.f.style.zIndex = 5;
+      }
+      const W = desktop.clientWidth, H = desktop.clientHeight;
+      glisse.f.style.left = clamp(glisse.l + dx, 0, W - glisse.f.offsetWidth) + "px";
+      glisse.f.style.top = clamp(glisse.t + dy, 0, H - glisse.f.offsetHeight) + "px";
+    });
+    addEventListener("pointerup", () => {
+      if (!glisse) return;
+      const g = glisse; glisse = null;
+      if (!g.bouge) return;
+      g.f.classList.remove("en-main"); g.f.style.zIndex = "";
+      const snap = (v) => Math.round(v / 8) * 8;
+      g.f.style.left = snap(parseFloat(g.f.style.left)) + "px"; g.f.style.top = snap(parseFloat(g.f.style.top)) + "px";
+      [...desktop.children].forEach((f) => { positions[idIcone(f)] = [parseFloat(f.style.left) / desktop.clientWidth, parseFloat(f.style.top) / desktop.clientHeight]; });
+      try { localStorage.setItem(CLE_ICONES, JSON.stringify(positions)); } catch (_) {}
+      son("clic");
+      // le clic qui suit un glisser ne doit pas ouvrir le dossier
+      const bloque = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+      g.f.addEventListener("click", bloque, { capture: true, once: true });
+      setTimeout(() => g.f.removeEventListener("click", bloque, { capture: true }), 50);
+    });
+    addEventListener("resize", () => { if (desktop.classList.contains("libre")) placer(); });
+    requestAnimationFrame(placer);
+  }
+
+  /* =====================================================================
+     Clic droit sur le bureau : menu rétro
+     ===================================================================== */
+  const FONDS = ["anime", "noir", "damier", "points"];
+  let fond = "anime";
+  try { fond = localStorage.getItem("bvi-fond") || "anime"; } catch (_) {}
+  const appliquerFond = () => { FONDS.forEach((f) => document.body.classList.toggle("fond-" + f, f === fond && f !== "anime")); };
+  appliquerFond();
+  let menu = null;
+  const fermerMenu = () => { if (menu) { menu.remove(); menu = null; } };
+  function ouvrirMenu(x, y) {
+    fermerMenu();
+    menu = el("div", "ctx");
+    setA(menu, "role", "menu");
+    const item = (txt, action, coche) => {
+      const b = el("button", "ctx-i" + (coche ? " coche" : ""));
+      setA(b, "role", "menuitem"); b.textContent = tr(txt);
+      b.addEventListener("click", (e) => { e.stopPropagation(); fermerMenu(); son("clic"); action(); });
+      menu.append(b);
+    };
+    const sep = () => menu.append(el("hr"));
+    item(UI.actualiser, () => { [...desktop.children].forEach((f, i) => { f.classList.remove("in"); void f.offsetWidth; f.style.setProperty("--d", i * 0.06 + "s"); f.classList.add("in"); }); });
+    const sous = el("div", "ctx-sous");
+    const titre = el("div", "ctx-t"); titre.textContent = tr(UI.fondEcran) + " ▸"; sous.append(titre);
+    const liste = el("div", "ctx-liste");
+    FONDS.forEach((f) => { const b = el("button", "ctx-i" + (f === fond ? " coche" : "")); b.textContent = tr(UI.fonds[f]); b.addEventListener("click", (e) => { e.stopPropagation(); fond = f; try { localStorage.setItem("bvi-fond", f); } catch (_) {} appliquerFond(); fermerMenu(); son("clic"); }); liste.append(b); });
+    sous.append(liste); menu.append(sous);
+    if (matchMedia("(pointer: fine)").matches) item(UI.ranger, ranger);
+    item(sonsOn ? UI.sonsOn : UI.sonsOff, basculerSons, sonsOn);
+    sep();
+    item(UI.apropos, aPropos);
+    document.body.append(menu);
+    const r = menu.getBoundingClientRect();
+    menu.style.left = clamp(x, 4, innerWidth - r.width - 4) + "px";
+    menu.style.top = clamp(y, 4, innerHeight - footerH() - r.height - 4) + "px";
+    if (x + r.width + 180 > innerWidth) menu.classList.add("gauche");
+  }
+  // clic droit n'importe où sur le bureau (pas dans une fenêtre, la barre des tâches ou la visionneuse)
+  addEventListener("contextmenu", (e) => {
+    if (e.target.closest(".windows, footer, .modal-bg, .apropos, .ctx, .boom, .rick, .screensaver, a, input, textarea")) return;
+    e.preventDefault(); ouvrirMenu(e.clientX, e.clientY);
+  });
+  addEventListener("pointerdown", (e) => { if (menu && !menu.contains(e.target)) fermerMenu(); });
+  addEventListener("keydown", (e) => { if (e.key === "Escape") fermerMenu(); });
+
+  function aPropos() {
+    const id = "w-apropos";
+    if (document.getElementById(id)) return;
+    const v = el("div", "apropos"); v.id = id;
+    setA(v, "role", "dialog"); setA(v, "aria-label", tr(UI.apropos));
+    const barre = el("div", "apropos-barre"); barre.textContent = tr(UI.apropos);
+    const x = el("button", "apropos-x"); x.textContent = "✕"; setA(x, "aria-label", tr(UI.close)); barre.append(x);
+    const corps = el("div", "apropos-corps");
+    const logo = el("img"); logo.src = A + "B6_round.png"; logo.alt = "";
+    corps.append(logo);
+    UI.aproposTexte.forEach((t, i) => { const p = el("p"); p.textContent = tr(t); if (i === 0) p.className = "gros"; corps.append(p); });
+    const ok = el("button", "apropos-ok"); ok.textContent = "OK"; corps.append(ok);
+    v.append(barre, corps); document.body.append(v);
+    const fermer = () => { v.remove(); son("ferme"); };
+    x.addEventListener("click", fermer); ok.addEventListener("click", fermer);
+    son("ouvre"); ok.focus();
+  }
+
+  /* =====================================================================
+     Jeux : démineur et snake, aux couleurs du site
+     ===================================================================== */
+  function renderJeu(node, content, win) {
+    content.classList.add("jeu");
+    if (node.jeu === "mines") demineur(content, win); else snake(content, win);
+  }
+
+  function demineur(content, win) {
+    win.style.height = Math.min(470, innerHeight - footerH() - 20) + "px";
+    const L = 9, C = 9, NB = 10;
+    const zone = el("div", "mines");
+    const haut = el("div", "mines-haut");
+    const cpt = el("span", "mines-cpt"), face = el("button", "mines-face"), chrono = el("span", "mines-cpt");
+    haut.append(cpt, face, chrono);
+    const grille = el("div", "mines-grille");
+    zone.append(haut, grille); content.append(zone);
+    let cases, fini, premier, drapeaux, t0, timer;
+    const fmt = (n) => String(Math.max(0, Math.min(999, n))).padStart(3, "0");
+    function nouvelle() {
+      cases = []; fini = false; premier = true; drapeaux = 0; clearInterval(timer); t0 = 0;
+      grille.textContent = ""; face.textContent = "B6"; face.className = "mines-face";
+      cpt.textContent = fmt(NB); chrono.textContent = "000";
+      for (let i = 0; i < L * C; i++) {
+        const b = el("button", "m-c");
+        const c = { b, mine: false, n: 0, vu: false, drap: false, i };
+        b.addEventListener("click", () => decouvrir(c));
+        b.addEventListener("contextmenu", (e) => { e.preventDefault(); marquer(c); });
+        let appui;   // appui long sur téléphone = drapeau
+        b.addEventListener("touchstart", () => { appui = setTimeout(() => { appui = "long"; marquer(c); }, 420); }, { passive: true });
+        b.addEventListener("touchend", (e) => { if (appui === "long") e.preventDefault(); else clearTimeout(appui); appui = null; });
+        b.addEventListener("touchmove", () => { clearTimeout(appui); appui = null; }, { passive: true });
+        cases.push(c); grille.append(b);
+      }
+    }
+    const voisins = (c) => { const r = Math.floor(c.i / C), k = c.i % C, out = []; for (let dr = -1; dr <= 1; dr++) for (let dk = -1; dk <= 1; dk++) { if (!dr && !dk) continue; const rr = r + dr, kk = k + dk; if (rr >= 0 && rr < L && kk >= 0 && kk < C) out.push(cases[rr * C + kk]); } return out; };
+    function poser(sauf) {   // le premier clic n'est jamais une mine
+      const interdit = new Set([sauf, ...voisins(sauf)]);
+      let n = 0; while (n < NB) { const c = cases[(Math.random() * cases.length) | 0]; if (c.mine || interdit.has(c)) continue; c.mine = true; n++; }
+      cases.forEach((c) => (c.n = voisins(c).filter((v) => v.mine).length));
+    }
+    function marquer(c) {
+      if (fini || c.vu) return;
+      c.drap = !c.drap; drapeaux += c.drap ? 1 : -1;
+      c.b.textContent = c.drap ? "⚑" : ""; c.b.classList.toggle("drap", c.drap);
+      cpt.textContent = fmt(NB - drapeaux); son("drapeau");
+    }
+    function decouvrir(c) {
+      if (fini || c.drap || c.vu) return;
+      if (premier) { premier = false; poser(c); t0 = Date.now(); timer = setInterval(() => { if (!content.isConnected) clearInterval(timer); else chrono.textContent = fmt(Math.floor((Date.now() - t0) / 1000)); }, 500); }
+      if (c.mine) { perdu(c); return; }
+      const pile = [c];
+      while (pile.length) {
+        const x = pile.pop(); if (x.vu || x.drap) continue;
+        x.vu = true; x.b.classList.add("vu"); x.b.disabled = true;
+        if (x.n) { x.b.textContent = x.n; x.b.dataset.n = x.n; } else voisins(x).forEach((v) => !v.vu && pile.push(v));
+      }
+      son("clic");
+      if (cases.every((x) => x.mine || x.vu)) { fini = true; clearInterval(timer); face.textContent = "B6 ✓"; face.classList.add("gagne"); cases.forEach((x) => { if (x.mine) { x.b.textContent = "⚑"; x.b.classList.add("drap"); } }); cpt.textContent = "000"; son("gagne"); }
+    }
+    function perdu(c) {
+      fini = true; clearInterval(timer); face.textContent = "x_x"; face.classList.add("perdu");
+      cases.forEach((x) => { if (x.mine) { x.b.textContent = "✸"; x.b.classList.add("mine"); } else if (x.drap) x.b.classList.add("faux"); });
+      c.b.classList.add("boum"); son("boum");
+    }
+    face.addEventListener("click", () => { son("clic"); nouvelle(); });
+    setA(face, "aria-label", tr(UI.rejouer));
+    nouvelle();
+  }
+
+  function snake(content, win) {
+    win.style.height = Math.min(480, innerHeight - footerH() - 20) + "px";
+    const COL = 21, LIG = 15, P = 16;
+    const zone = el("div", "snake");
+    const info = el("div", "snake-info");
+    const score = el("span"), record = el("span");
+    info.append(score, record);
+    const cv = el("canvas", "snake-cv"); cv.width = COL * P; cv.height = LIG * P; cv.tabIndex = 0;
+    const aide = el("p", "snake-aide"); aide.textContent = tr(UI.snakeAide);
+    const pad = el("div", "snake-pad");
+    [["↑", 0, -1], ["←", -1, 0], ["↓", 0, 1], ["→", 1, 0]].forEach(([t, dx, dy]) => { const b = el("button"); b.textContent = t; b.addEventListener("click", () => tourner(dx, dy)); pad.append(b); });
+    zone.append(info, cv, aide, pad); content.append(zone);
+    const g = cv.getContext("2d");
+    const logo = new Image(); logo.src = A + "B6_round_small.png";
+    let serpent, dir, prochaine, pomme, pts, enJeu, mort, dernier = 0, vitesse;
+    let best = 0; try { best = +localStorage.getItem("bvi-snake") || 0; } catch (_) {}
+    const majInfo = () => { score.textContent = "score " + pts; record.textContent = tr(UI.meilleur) + " " + best; };
+    function depart() { serpent = [[5, 7], [4, 7], [3, 7]]; dir = [1, 0]; prochaine = [1, 0]; pts = 0; vitesse = 140; mort = false; enJeu = false; placerPomme(); majInfo(); }
+    function placerPomme() { do { pomme = [(Math.random() * COL) | 0, (Math.random() * LIG) | 0]; } while (serpent.some(([x, y]) => x === pomme[0] && y === pomme[1])); }
+    function tourner(dx, dy) {
+      if (mort) { depart(); }
+      if (dx === -dir[0] && dy === -dir[1] && serpent.length > 1) return;
+      prochaine = [dx, dy]; if (!enJeu) { enJeu = true; aide.classList.add("cache"); }
+    }
+    const accent = () => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#625aff";
+    function dessiner() {
+      const a = accent();
+      g.fillStyle = "#121212"; g.fillRect(0, 0, cv.width, cv.height);
+      g.fillStyle = "#1e1e1e"; for (let x = 0; x < COL; x++) for (let y = 0; y < LIG; y++) if ((x + y) % 2) g.fillRect(x * P, y * P, P, P);
+      if (logo.complete) g.drawImage(logo, pomme[0] * P + 1, pomme[1] * P + 1, P - 2, P - 2); else { g.fillStyle = "#fff"; g.fillRect(pomme[0] * P + 4, pomme[1] * P + 4, P - 8, P - 8); }
+      serpent.forEach(([x, y], i) => { g.fillStyle = i ? a : "#ffffff"; g.fillRect(x * P + 1, y * P + 1, P - 2, P - 2); });
+      const [hx, hy] = serpent[0]; g.fillStyle = "#000"; g.fillRect(hx * P + 5 + dir[0] * 3, hy * P + 5 + dir[1] * 3, 3, 3); g.fillRect(hx * P + 9 + dir[0] * 3 - (dir[1] ? 0 : 0), hy * P + 9 + dir[1] * 3, 3, 3);
+      if (mort) {
+        g.fillStyle = "rgba(0,0,0,.65)"; g.fillRect(0, 0, cv.width, cv.height);
+        g.fillStyle = "#fff"; g.font = "20px PxGroteskScreen, monospace"; g.textAlign = "center";
+        g.fillText(tr(UI.perdu) + "  " + pts, cv.width / 2, cv.height / 2 - 6);
+        g.font = "13px PxGroteskScreen, monospace"; g.fillText(tr(UI.rejouer) + " : ↑ ↓ ← →", cv.width / 2, cv.height / 2 + 18);
+      }
+    }
+    function pas() {
+      dir = prochaine;
+      const t = [serpent[0][0] + dir[0], serpent[0][1] + dir[1]];
+      if (t[0] < 0 || t[1] < 0 || t[0] >= COL || t[1] >= LIG || serpent.some(([x, y]) => x === t[0] && y === t[1])) {
+        mort = true; enJeu = false; son("boum");
+        if (pts > best) { best = pts; try { localStorage.setItem("bvi-snake", best); } catch (_) {} }
+        majInfo(); return;
+      }
+      serpent.unshift(t);
+      if (t[0] === pomme[0] && t[1] === pomme[1]) { pts++; vitesse = Math.max(60, vitesse - 4); placerPomme(); son("mange"); majInfo(); }
+      else serpent.pop();
+    }
+    function boucle(now) {
+      if (!cv.isConnected) return;
+      if (enJeu && !mort && now - dernier > vitesse) { dernier = now; pas(); }
+      dessiner(); requestAnimationFrame(boucle);
+    }
+    const touches = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], z: [0, -1], s: [0, 1], q: [-1, 0], d: [1, 0], w: [0, -1], a: [-1, 0] };
+    const clavier = (e) => {
+      if (!cv.isConnected) { removeEventListener("keydown", clavier); return; }
+      if (!win.classList.contains("active-w") || win.classList.contains("minimized")) return;
+      const d = touches[e.key]; if (!d) return;
+      e.preventDefault(); tourner(d[0], d[1]);
+    };
+    addEventListener("keydown", clavier);
+    let tx = 0, ty = 0;   // glisser du doigt
+    cv.addEventListener("touchstart", (e) => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+    cv.addEventListener("touchend", (e) => { const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return; if (Math.abs(dx) > Math.abs(dy)) tourner(Math.sign(dx), 0); else tourner(0, Math.sign(dy)); });
+    cv.addEventListener("click", () => cv.focus());
+    depart(); requestAnimationFrame(boucle);
   }
 })();
