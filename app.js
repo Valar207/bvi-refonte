@@ -1233,9 +1233,19 @@
   }
 
   function demineur(content, win) {
-    win.style.height = Math.min(470, innerHeight - footerH() - 20) + "px";
-    const L = 9, C = 9, NB = 10;
+    // 4 niveaux : seule la taille de la grille change (et le nombre de mines avec)
+    const NIVEAUX = { facile: [9, 9, 10], moyen: [12, 12, 22], difficile: [16, 16, 40], extreme: [16, 30, 99] };
+    let niveau = "facile";
+    try { niveau = NIVEAUX[localStorage.getItem("bvi-mines")] ? localStorage.getItem("bvi-mines") : "facile"; } catch (_) {}
+    let L, C, NB;
     const zone = el("div", "mines");
+    const choix = el("div", "mines-niveaux");
+    Object.keys(NIVEAUX).forEach((k) => {
+      const b = setT(el("button", "mines-niv"), UI.niveaux[k]); b.dataset.niv = k;
+      b.addEventListener("click", () => { niveau = k; try { localStorage.setItem("bvi-mines", k); } catch (_) {} son("clic"); nouvelle(); });
+      choix.append(b);
+    });
+    zone.append(choix);
     const haut = el("div", "mines-haut");
     const cpt = el("span", "mines-cpt"), face = el("button", "mines-face"), chrono = el("span", "mines-cpt");
     haut.append(cpt, face, chrono);
@@ -1243,7 +1253,18 @@
     zone.append(haut, grille); content.append(zone);
     let cases, fini, premier, drapeaux, t0, timer;
     const fmt = (n) => String(Math.max(0, Math.min(999, n))).padStart(3, "0");
+    function taille() {   // la grille tient dans la fenêtre : cases de 18 à 30 px
+      const dispo = content.clientWidth - 40;
+      const px = Math.max(18, Math.min(30, Math.floor(dispo / C) - 2));
+      grille.style.setProperty("--m", px + "px");
+      grille.style.gridTemplateColumns = `repeat(${C}, var(--m))`;
+    }
     function nouvelle() {
+      [L, C, NB] = NIVEAUX[niveau];
+      if (content.clientWidth < 600 && C > L) [L, C] = [C, L];   // téléphone : la grande grille passe en hauteur
+      choix.querySelectorAll("button").forEach((b) => b.classList.toggle("actif", b.dataset.niv === niveau));
+      const h = { facile: 500, moyen: 600, difficile: 720, extreme: 720 }[niveau];
+      if (innerWidth > 768) { win.style.height = Math.min(h, innerHeight - footerH() - 20) + "px"; if (C > 16) win.style.width = Math.min(980, innerWidth - 20) + "px"; }
       cases = []; fini = false; premier = true; drapeaux = 0; clearInterval(timer); t0 = 0;
       grille.textContent = ""; face.textContent = "B6"; face.className = "mines-face";
       cpt.textContent = fmt(NB); chrono.textContent = "000";
@@ -1258,7 +1279,9 @@
         b.addEventListener("touchmove", () => { clearTimeout(appui); appui = null; }, { passive: true });
         cases.push(c); grille.append(b);
       }
+      requestAnimationFrame(taille);
     }
+    if (window.ResizeObserver) new ResizeObserver(() => C && taille()).observe(content);
     const voisins = (c) => { const r = Math.floor(c.i / C), k = c.i % C, out = []; for (let dr = -1; dr <= 1; dr++) for (let dk = -1; dk <= 1; dk++) { if (!dr && !dk) continue; const rr = r + dr, kk = k + dk; if (rr >= 0 && rr < L && kk >= 0 && kk < C) out.push(cases[rr * C + kk]); } return out; };
     function poser(sauf) {   // le premier clic n'est jamais une mine
       const interdit = new Set([sauf, ...voisins(sauf)]);

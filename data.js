@@ -70,6 +70,7 @@ const UI = {
     T("Astuce : essaie de taper « lucasbessis ».", "Tip: try typing “lucasbessis”.", "Suggerimento: prova a digitare « lucasbessis »."),
   ],
   demineur: T("démineur", "minesweeper", "campo minato"),
+  niveaux: { facile: T("facile", "easy", "facile"), moyen: T("moyen", "medium", "medio"), difficile: T("difficile", "hard", "difficile"), extreme: T("extrême", "extreme", "estremo") },
   perdu: T("Perdu !", "Game over!", "Hai perso!"),
   gagne: T("Gagné !", "You win!", "Hai vinto!"),
   rejouer: T("Rejouer", "Play again", "Rigioca"),
