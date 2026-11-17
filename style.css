@@ -149,6 +149,8 @@ a:hover::after { transform: scaleX(1); transform-origin: left; }
   filter: drop-shadow(4px 8px 4px rgba(0, 0, 0, 0.45));
 }
 .folder:active img { transform: scale(0.92); transition-duration: 0.1s; }
+.admin-icon { position: fixed; right: 0; bottom: var(--footer-h); z-index: 1; text-decoration: none; color: white; }
+.admin-icon::after { display: none; }
 .folder.selected { background: rgba(0, 0, 0, 0.18); border-color: rgba(255, 255, 255, 0.7); }
 .folder:focus-visible { outline: none; border-color: white; }
 

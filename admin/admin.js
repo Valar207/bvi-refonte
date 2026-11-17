@@ -34,7 +34,7 @@
     let r, d;
     try { r = await fetch(API + "?a=" + action, opts); d = await r.json(); }
     catch (e) { throw new Error("Pas de réponse du serveur. Vérifie ta connexion internet."); }
-    if (r.status === 401 && action !== "connexion") { sauverBrouillon(); afficherConnexion("Ta session a expiré : reconnecte-toi, tes modifications sont gardées."); throw new Error(""); }
+    if (r.status === 401 && action !== "connexion") { repere(false); sauverBrouillon(); afficherConnexion("Ta session a expiré : reconnecte-toi, tes modifications sont gardées."); throw new Error(""); }
     if (!d.ok) throw new Error(d.erreur || "Erreur inconnue.");
     return d;
   }
@@ -91,6 +91,8 @@
   }
 
   /* ---------- brouillon & état ---------- */
+  // repère pour le site : montre l'icône « admin » sur le bureau tant que la session est ouverte
+  const repere = (oui) => { try { if (oui) localStorage.setItem("bvi-admin", "1"); else localStorage.removeItem("bvi-admin"); } catch (e) {} };
   function sauverBrouillon() { try { if (C) localStorage.setItem(BROUILLON + instance, JSON.stringify({ base: publie, contenu: C })); } catch (e) {} }
   function effacerBrouillon() { try { localStorage.removeItem(BROUILLON + instance); } catch (e) {} }
   let bT;
@@ -119,6 +121,7 @@
 
   async function charger() {
     const d = await api("contenu");
+    repere(true);
     publie = JSON.stringify(d.contenu);
     C = clone(d.contenu);
     try {
@@ -426,6 +429,7 @@
   async function deconnexion() {
     if (sale()) sauverBrouillon();
     try { await api("deconnexion", {}); } catch (e) {}
+    repere(false);
     csrf = ""; afficherConnexion("");
   }
 
@@ -434,7 +438,7 @@
     try {
       const d = await api("etat");
       csrf = d.csrf; instance = d.instance;
-      if (d.connecte) { user = d.user; await charger(); } else afficherConnexion("");
+      if (d.connecte) { user = d.user; await charger(); } else { repere(false); afficherConnexion(""); }
     } catch (e) { app.replaceChildren(el("p", { class: "chargement", text: e.message || "Erreur au chargement." })); }
   })();
 })();

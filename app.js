@@ -124,6 +124,27 @@
   };
   SITE.forEach((n) => desktop.append(makeIcon(n, "dossier.png")));
   desktop.append(makeIcon(CONTACT, "ordi.png"));
+
+  // Icône « admin » en bas à droite du bureau : seulement pour Lucas connecté à l'administration.
+  // L'administration pose un repère « bvi-admin » dans le navigateur ; on vérifie alors auprès du serveur que la session est vraiment ouverte.
+  // Un visiteur normal n'a pas ce repère : aucune requête, aucune icône.
+  (async () => {
+    let repere = null;
+    try { repere = localStorage.getItem("bvi-admin"); } catch (e) {}
+    if (!repere) return;
+    try {
+      const r = await fetch("/admin/api.php?a=etat", { credentials: "same-origin", cache: "no-store" });
+      const d = await r.json();
+      if (!d.connecte) { try { localStorage.removeItem("bvi-admin"); } catch (e) {} return; }
+      const a = el("a", "folder admin-icon");
+      a.href = "/admin/";
+      const im = el("img"); im.src = A + "admin.png"; im.alt = "";
+      const h = el("h2"); h.textContent = "admin";
+      a.append(im, h);
+      document.body.append(a);
+      requestAnimationFrame(() => a.classList.add("in"));
+    } catch (e) {}
+  })();
   desktop.addEventListener("pointerdown", (e) => {
     if (e.target === desktop) document.querySelectorAll(".folder.selected").forEach((x) => x.classList.remove("selected"));
   });

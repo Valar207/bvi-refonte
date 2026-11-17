@@ -32,3 +32,6 @@ Dans les descriptions des dossiers et les légendes de la visionneuse, un lien s
 
 ## Cache
 `index.html` charge les fichiers avec `?v=AAAAMMJJHHMM` (à changer à chaque modification de app.js, data.js ou style.css), et `.htaccess` impose `Cache-Control: no-cache` sur index.html, content.js, data.js, app.js et style.css : les visiteurs voient toujours la dernière version.
+
+## Icône « admin » sur le bureau
+En bas à droite du bureau, un cadenas « admin » mène à `/admin/`, **uniquement pour Lucas connecté**. À la connexion, l'administration pose un repère `bvi-admin` dans le `localStorage` du navigateur (retiré à la déconnexion ou à l'expiration de la session). Le site ne fait la vérification auprès du serveur (`/admin/api.php?a=etat`) que si ce repère existe : un visiteur normal n'envoie aucune requête et ne voit rien. Icône : `assets/admin.png` (pixel art, même trait blanc que les autres).
