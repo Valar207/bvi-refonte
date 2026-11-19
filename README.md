@@ -27,6 +27,9 @@ Lucas met à jour le site sans code ni FTP sur **b-vi.fr/admin** (identifiant `L
 - Les photos envoyées vont dans `images/<rubrique>/<dossier>/` et ne sont jamais écrasées ni supprimées du serveur (« Retirer » les enlève seulement du site).
 - `.htaccess` à la racine : `content.js` toujours rechargé (pas de cache).
 
+## Mail de notification
+Après chaque publication (ou restauration d'une version) depuis l'administration, `admin/notif.php` compare l'ancien contenu au nouveau et envoie un mail récapitulatif via `mail()` d'OVH (expéditeur `noreply@b-vi.fr`, texte + HTML avec vignettes `_mini` des images ajoutées). Il signale les dossiers ajoutés ou supprimés, les images, vidéos et PDF ajoutés, retirés ou déplacés, les titres, légendes et descriptions modifiés (avec la langue), le badge « nouveau », les changements d'ordre et la page contact. Pas de mail si rien n'a changé. Le destinataire est dans `bvi-admin/notif.php` (hors du web et du dépôt) : `<?php return ['a' => 'adresse@exemple.fr'];`. Sans ce fichier, aucun mail n'est envoyé. Une erreur d'envoi ne bloque jamais la publication.
+
 ## Liens dans les textes
 Dans les descriptions des dossiers et les légendes de la visionneuse, un lien s'écrit `[texte](https://adresse)` (ou `mailto:`). Sur le site, seul « texte » s'affiche, cliquable (nouvel onglet). Dans l'administration, le bouton « 🔗 Insérer un lien » l'écrit à la place du curseur. Code : `LIEN`, `sansLiens` et `avecLiens` dans `app.js` (la machine à écrire tape le texte simple, puis les liens apparaissent à la fin). Dans la visionneuse, les zones « précédente / suivante » s'arrêtent au-dessus de la légende (`--cap-h`), pour que ses liens restent cliquables.
 

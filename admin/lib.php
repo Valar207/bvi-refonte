@@ -164,6 +164,7 @@ function enregistrer($c, $note) {
     }
     ecrire_atomique("$DATA/contenu.json", json_encode($c, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     ecrire_site($c);
+    if (is_file(__DIR__ . '/notif.php')) { require_once __DIR__ . '/notif.php'; notif_envoyer($actuel, $c, $note); }   // mail à Valentin (jamais bloquant)
 }
 
 /* ---------- Fichiers envoyés ---------- */
