@@ -46,6 +46,8 @@ En bas à droite du bureau (règle `.folder.admin-icon`, plus forte que `.folder
 - `sitemap.php` répond sur `/sitemap.xml` (toujours à jour avec le contenu publié), `robots.txt` le déclare et exclut `/admin/`.
 - `.htaccess` : `DirectoryIndex page.php index.php index.html`, réécritures vers page.php / sitemap.php. Le script ne doit PAS s'appeler projet.php : MultiViews (actif chez OVH, et nécessaire car certaines images sont référencées sans extension) enverrait /projet/... directement dessus. Ne pas couper MultiViews. `index.html` a `<base href="/">` pour que les fichiers se chargent depuis n'importe quelle adresse.
 
+- Jeux : `/projet/jeux`, `/projet/jeux/demineur` et `/projet/jeux/snake` ont leur propre titre, description et image d'aperçu (captures 1200×630 `assets/apercu-demineur.jpg` et `assets/apercu-snake.jpg`, prises avec Playwright, en français, fenêtre du jeu centrée).
+
 ## Miniatures
 Les vignettes des fenêtres chargent des miniatures légères : `images/_mini/<chemin de l'image sans extension>.jpg` (240 px de haut max, JPEG). Elles sont créées automatiquement quand Lucas envoie une photo par l'administration (`miniature()` dans `admin/lib.php`, avec GD). Si une miniature manque, le site affiche l'image en grand à la place. Les 146 miniatures des images existantes ont été générées le 2026-11-17 (34 Mo d'originaux → 1,9 Mo).
 

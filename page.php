@@ -22,7 +22,12 @@ try {
     if ($p !== '' && !$n) {   // juste « kosmos »
         foreach ($tous as $ch => $x) if (basename($ch) === $p) { $n = $x; $p = $ch; break; }
     }
-    if ($p === 'contact' || $p === 'jeux' || strpos($p, 'jeux/') === 0) { $n = null; $p = $p === 'contact' ? 'contact' : 'jeux'; }
+    $jeu = null;
+    if ($p === 'contact' || $p === 'jeux' || strpos($p, 'jeux/') === 0) {
+        if (strpos($p, 'jeux/') === 0) $jeu = in_array(substr($p, 5), ['demineur', 'snake'], true) ? substr($p, 5) : null;
+        $n = null; $p = $p === 'contact' ? 'contact' : 'jeux';
+    }
+    $img_abs = null;   // image d'aperçu hors de /images (captures des jeux dans /assets)
 
     if ($n) {
         $titre = $n['name'] . ' — Lucas Bessis · B-VI';
@@ -31,6 +36,14 @@ try {
         $item = ($num && !empty($n['items'][$num - 1])) ? $n['items'][$num - 1] : null;
         $img = ($item && !empty($item['src'])) ? $item['src'] : premiere_image($n);
         $canon = "$SITE_URL/projet/$p" . ($item ? "/$num" : '');
+    } elseif ($p === 'jeux') {   // aperçus des jeux : capture du jeu (assets/apercu-*.jpg, 1200×630)
+        $j = $jeu ?? 'demineur';
+        $titre = ($jeu === 'snake' ? 'Snake' : ($jeu === 'demineur' ? 'Démineur' : 'Jeux')) . ' — Lucas Bessis · B-VI';
+        $desc = $jeu === 'snake' ? 'Un snake aux couleurs du bureau de b-vi.fr, avec son classement. Bats le record !'
+              : ($jeu === 'demineur' ? 'Un démineur aux couleurs du bureau de b-vi.fr : 4 niveaux et un classement. Bats le record !'
+              : 'Deux petits jeux aux couleurs du bureau de b-vi.fr : démineur et snake, avec leurs classements.');
+        $img = null; $img_abs = "$SITE_URL/assets/apercu-$j.jpg";
+        $canon = "$SITE_URL/projet/jeux" . ($jeu ? "/$jeu" : '');
     } else {
         $titre = 'Lucas Bessis · B-VI — Graphisme, direction artistique';
         $desc = 'Portfolio de Lucas Bessis, graphiste et directeur artistique à Paris : signalétique, scénographie, identité visuelle, édition, illustration, web.';
@@ -46,6 +59,7 @@ try {
         . "\n    <meta property=\"og:title\" content=\"" . h($titre) . "\" />"
         . "\n    <meta property=\"og:description\" content=\"" . h($court) . "\" />"
         . "\n    <meta property=\"og:url\" content=\"" . h($canon) . "\" />"
+        . ($img_abs ? "\n    <meta property=\"og:image\" content=\"" . h($img_abs) . "\" />\n    <meta property=\"og:image:secure_url\" content=\"" . h($img_abs) . "\" />\n    <meta property=\"og:image:width\" content=\"1200\" />\n    <meta property=\"og:image:height\" content=\"630\" />\n    <meta property=\"og:image:type\" content=\"image/jpeg\" />\n    <meta name=\"twitter:image\" content=\"" . h($img_abs) . "\" />" : '')
         . ($img ? "\n    <meta property=\"og:image\" content=\"" . h(img_url($img)) . "\" />\n    <meta property=\"og:image:secure_url\" content=\"" . h(img_url($img)) . "\" />" . dims_image($img) . "\n    <meta name=\"twitter:image\" content=\"" . h(img_url($img)) . "\" />" : '')
         . "\n    <meta name=\"twitter:card\" content=\"summary_large_image\" />"
         . "\n    <meta name=\"twitter:title\" content=\"" . h($titre) . "\" />"
