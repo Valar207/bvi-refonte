@@ -20,11 +20,38 @@ $INST = ($SITE_DIR === $WWW) ? 'prod' : preg_replace('/[^a-z0-9_-]/i', '', basen
 $DATA = "$PRIV/data/$INST";
 $IMAGES = "$WWW/images";
 
+const DUREE_SESSION = 30 * 86400;   // Lucas reste connecté 30 jours (prolongés à chaque visite de l'admin)
+// Sessions rangées dans bvi-admin/sessions (hors web) par un gestionnaire maison : OVH ignore session_save_path()
+// et garde les sessions dans /tmp, où son propre ménage les efface au bout de quelques minutes ou heures.
+class SessionsBvi implements SessionHandlerInterface {
+    private $dir;
+    function __construct($dir) { $this->dir = $dir; }
+    private function f($id) { return $this->dir . '/sess_' . preg_replace('/[^A-Za-z0-9,-]/', '', $id); }
+    #[\ReturnTypeWillChange] function open($p, $n) { return true; }
+    #[\ReturnTypeWillChange] function close() { return true; }
+    #[\ReturnTypeWillChange] function read($id) { $f = $this->f($id); return (is_file($f) && filemtime($f) >= time() - DUREE_SESSION) ? (string)@file_get_contents($f) : ''; }
+    #[\ReturnTypeWillChange] function write($id, $d) { $f = $this->f($id); $ok = @file_put_contents($f, $d, LOCK_EX) !== false; if ($ok) @chmod($f, 0600); return $ok; }
+    #[\ReturnTypeWillChange] function destroy($id) { @unlink($this->f($id)); return true; }
+    #[\ReturnTypeWillChange] function gc($max) { foreach (glob($this->dir . '/sess_*') ?: [] as $f) if (@filemtime($f) < time() - DUREE_SESSION) @unlink($f); return 0; }
+}
 function demarrer_session() {
+    global $PRIV;
+    $dir = "$PRIV/sessions";
+    if (!is_dir($dir)) @mkdir($dir, 0700, true);
+    if (is_dir($dir) && is_writable($dir)) {
+        $h = new SessionsBvi($dir);
+        session_set_save_handler($h, true);
+        if (mt_rand(1, 50) === 1) $h->gc(DUREE_SESSION);   // ménage maison (le ramasse-miettes PHP est coupé chez OVH)
+    }
     session_name('bviadmin');
-    session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Strict']);
+    $opts = ['path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Strict'];
+    session_set_cookie_params(['lifetime' => DUREE_SESSION] + $opts);
     session_start();
     if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(24));
+    if (!empty($_SESSION['user'])) {   // durée glissante : cookie et fichier de session repoussés à chaque visite
+        setcookie(session_name(), session_id(), ['expires' => time() + DUREE_SESSION] + $opts);
+        if (($_SESSION['vu'] ?? 0) < time() - 3600) $_SESSION['vu'] = time();
+    }
 }
 
 function repondre($data, $code = 200) {

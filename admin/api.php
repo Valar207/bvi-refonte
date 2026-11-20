@@ -35,6 +35,7 @@ case 'connexion':
 case 'deconnexion':
     exiger_csrf();
     $_SESSION = []; session_destroy();
+    setcookie('bviadmin', '', ['expires' => 1, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Strict']);
     repondre(['ok' => true]);
 
 case 'contenu':
