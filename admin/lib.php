@@ -27,12 +27,18 @@ class SessionsBvi implements SessionHandlerInterface {
     private $dir;
     function __construct($dir) { $this->dir = $dir; }
     private function f($id) { return $this->dir . '/sess_' . preg_replace('/[^A-Za-z0-9,-]/', '', $id); }
-    #[\ReturnTypeWillChange] function open($p, $n) { return true; }
-    #[\ReturnTypeWillChange] function close() { return true; }
-    #[\ReturnTypeWillChange] function read($id) { $f = $this->f($id); return (is_file($f) && filemtime($f) >= time() - DUREE_SESSION) ? (string)@file_get_contents($f) : ''; }
-    #[\ReturnTypeWillChange] function write($id, $d) { $f = $this->f($id); $ok = @file_put_contents($f, $d, LOCK_EX) !== false; if ($ok) @chmod($f, 0600); return $ok; }
-    #[\ReturnTypeWillChange] function destroy($id) { @unlink($this->f($id)); return true; }
-    #[\ReturnTypeWillChange] function gc($max) { foreach (glob($this->dir . '/sess_*') ?: [] as $f) if (@filemtime($f) < time() - DUREE_SESSION) @unlink($f); return 0; }
+    #[\ReturnTypeWillChange]
+    function open($p, $n) { return true; }
+    #[\ReturnTypeWillChange]
+    function close() { return true; }
+    #[\ReturnTypeWillChange]
+    function read($id) { $f = $this->f($id); return (is_file($f) && filemtime($f) >= time() - DUREE_SESSION) ? (string)@file_get_contents($f) : ''; }
+    #[\ReturnTypeWillChange]
+    function write($id, $d) { $f = $this->f($id); $ok = @file_put_contents($f, $d, LOCK_EX) !== false; if ($ok) @chmod($f, 0600); return $ok; }
+    #[\ReturnTypeWillChange]
+    function destroy($id) { @unlink($this->f($id)); return true; }
+    #[\ReturnTypeWillChange]
+    function gc($max) { foreach (glob($this->dir . '/sess_*') ?: [] as $f) if (@filemtime($f) < time() - DUREE_SESSION) @unlink($f); return 0; }
 }
 function demarrer_session() {
     global $PRIV;
